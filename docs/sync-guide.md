@@ -4,13 +4,17 @@ Cómo debe Claude leer los comprobantes de Gmail (solo lectura) y registrarlos c
 
 ## 1. Buscar comprobantes
 
-Remitentes de los comprobantes: `BBVA@bbvanet.com.co` (compras, pagos y transferencias enviadas) y `notificacionesBreB@bbva.com` (dinero recibido por Bre-B). Las promociones vienen de `info@email.bbva.com.co`: se ignoran.
+La búsqueda se hace por **remitente**, no por asunto. Los remitentes autorizados viven en el MCP (`listar_remitentes`, `agregar_remitente`, `quitar_remitente`); no hay ninguno por defecto, el usuario los agrega. Ejemplos de remitentes bancarios: `BBVA@bbvanet.com.co` (compras, pagos y transferencias enviadas) y `notificacionesBreB@bbva.com` (dinero recibido por Bre-B). Las promociones (por ejemplo de `info@email.bbva.com.co`) no son remitentes autorizados y se ignoran.
+
+`listar_remitentes` devuelve `gmailQuery`, por ejemplo:
 
 ```
-(from:BBVA@bbvanet.com.co (subject:"Compra Exitosa" OR subject:"Pagos PSE" OR subject:"Pago de Facturas" OR subject:"transferencia")) OR (from:notificacionesBreB@bbva.com subject:"Bre-B") after:YYYY/MM/DD
+from:(bbva@bbvanet.com.co OR notificacionesbreb@bbva.com)
 ```
 
-Nunca registrar los de asunto **"Pago Rechazado"** (el cobro no se hizo; suelen repetirse por reintentos de suscripciones).
+Se busca en Gmail con `<gmailQuery> after:YYYY/MM/DD`. Si `gmailQuery` viene vacío, no hay remitentes: pedir al usuario que agregue alguno con `agregar_remitente`.
+
+Aunque el remitente sea autorizado, no todo correo es una transacción: nunca registrar los de asunto **"Pago Rechazado"** (el cobro no se hizo; suelen repetirse por reintentos de suscripciones), las promociones ni cualquier correo que no sea una transacción.
 
 ## 2. Tipos de comprobante vistos
 
@@ -36,10 +40,12 @@ Para Bre-B recibido, `sourceId` = id del mensaje de Gmail (el "Código de operac
 ## 4. Flujo de sincronización
 
 1. Llamar a `ultimo_movimiento_registrado` para saber desde qué fecha buscar (si está vacío, pedir al usuario desde cuándo).
-2. Buscar con la consulta de arriba desde esa fecha menos un día. El solapamiento es seguro: un mismo `sourceId` nunca se duplica.
-3. Para cada mensaje, leerlo en texto plano, interpretarlo y llamar a `registrar_movimiento`.
-4. Resolver con el usuario las clasificaciones pendientes.
-5. Informar cuántos movimientos se registraron, cuántos eran duplicados y cuáles no se pudieron interpretar.
+2. Llamar a `listar_remitentes` y buscar en Gmail con `gmailQuery` más `after:` esa fecha menos un día. El solapamiento es seguro: un mismo `sourceId` nunca se duplica.
+3. Pasar los ids de los mensajes encontrados a `filtrar_no_registrados` (máx. 500): devuelve solo los que aún no están registrados (también cuenta como registrado un `sourceId` de la forma `<id>#n`). Así no se vuelven a leer correos ya procesados.
+4. Leer en texto plano solo esos mensajes e interpretar cada uno. Descartar promociones, "Pago Rechazado" y todo lo que no sea una transacción; los que no encajen en la tabla de la sección 2 se listan al usuario como "no interpretado".
+5. Registrar los movimientos interpretados con `registrar_movimientos` (máx. 100 por llamada). Un ítem inválido no aborta los demás: revisar los `error` del resultado, corregir y reenviar.
+6. Para cada ítem con `needsClassification: true`, preguntar al usuario la categoría y llamar a `clasificar_comercio`.
+7. Informar cuántos movimientos se registraron, cuántos eran duplicados, cuántos fallaron y cuáles no se pudieron interpretar.
 
 ## 5. Privacidad
 

@@ -18,7 +18,7 @@ Variable de entorno `GASTOS_DB`: ruta de la base SQLite (por defecto `~/.gastos-
 claude mcp add gastos -e GASTOS_DB=/ruta/gastos.db -- node "/ruta/absoluta/MCP Gastos/dist/index.js"
 ```
 
-## Herramientas
+## Herramientas (13)
 
 - `registrar_movimiento`: guarda un movimiento ya interpretado (usar `sourceId` = id del correo para evitar duplicados; si `needsClassification` es true, preguntar la categoría).
 - `consultar_movimientos`: filtra y agrupa movimientos (totales por categoría, banco, comercio, día o mes).
@@ -28,6 +28,13 @@ claude mcp add gastos -e GASTOS_DB=/ruta/gastos.db -- node "/ruta/absoluta/MCP G
 - `importar_gastos_fijos`: carga la lista de gastos fijos desde un Excel.
 - `gastos_fijos_pendientes`: gastos fijos del mes pagados y por pagar.
 - `ultimo_movimiento_registrado`: fecha más reciente por banco, para saber desde dónde sincronizar.
+- `listar_remitentes`: remitentes bancarios autorizados y la consulta `gmailQuery` (`from:(a OR b)`) para buscar en Gmail.
+- `agregar_remitente`: agrega un remitente (se guarda en minúsculas; debe contener `@`; no hay ninguno por defecto).
+- `quitar_remitente`: quita un remitente de la lista.
+- `filtrar_no_registrados`: de una lista de ids de mensajes (máx. 500) devuelve los que aún no están registrados.
+- `registrar_movimientos`: registra hasta 100 movimientos por lote; cada ítem se valida por separado.
+
+Flujo de sincronización: `listar_remitentes` → buscar en Gmail con `gmailQuery` y `after:` una fecha → `filtrar_no_registrados` con los ids encontrados → interpretar cada correo (promociones, "Pago Rechazado" y no-transacciones no se registran) → `registrar_movimientos`. Detalle en `docs/sync-guide.md`.
 
 ## Formato del Excel de gastos fijos
 
