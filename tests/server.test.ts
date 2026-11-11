@@ -22,13 +22,41 @@ async function connect() {
 const mov = { date: "2026-10-05", amount: 50000, merchant: "Exito", bank: "bbva", kind: "gasto" };
 
 describe("servidor MCP", () => {
-  it("lista las 8 herramientas", async () => {
+  it("lista las 13 herramientas", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
-      "clasificar_comercio", "consultar_movimientos", "estado_presupuesto", "fijar_presupuesto",
-      "gastos_fijos_pendientes", "importar_gastos_fijos", "registrar_movimiento", "ultimo_movimiento_registrado",
+      "agregar_remitente", "clasificar_comercio", "consultar_movimientos", "estado_presupuesto",
+      "fijar_presupuesto", "filtrar_no_registrados", "gastos_fijos_pendientes", "importar_gastos_fijos",
+      "listar_remitentes", "quitar_remitente", "registrar_movimiento", "registrar_movimientos",
+      "ultimo_movimiento_registrado",
     ]);
+  });
+
+  it("remitentes: agregar, listar con gmailQuery y quitar", async () => {
+    const { call } = await connect();
+    expect(JSON.parse((await call("listar_remitentes")).text)).toEqual({ senders: [], gmailQuery: "" });
+    expect(JSON.parse((await call("agregar_remitente", { address: " BBVA@bbvanet.com.co ", label: "BBVA" })).text))
+      .toEqual({ address: "bbva@bbvanet.com.co", added: true });
+    expect(JSON.parse((await call("listar_remitentes")).text).gmailQuery).toBe("from:(bbva@bbvanet.com.co)");
+    expect((await call("agregar_remitente", { address: "sin-arroba" })).isError).toBe(true);
+    expect(JSON.parse((await call("quitar_remitente", { address: "bbva@bbvanet.com.co" })).text)).toEqual({ removed: true });
+  });
+
+  it("registrar_movimientos y filtrar_no_registrados de punta a punta", async () => {
+    const { call } = await connect();
+    const r = JSON.parse(
+      (await call("registrar_movimientos", { movements: [{ ...mov, sourceId: "g1" }, { ...mov, amount: -1 }] })).text,
+    );
+    expect(r.summary).toEqual({ registered: 1, duplicates: 0, failed: 1 });
+    expect(JSON.parse((await call("filtrar_no_registrados", { sourceIds: ["g1", "g2"] })).text)).toEqual(["g2"]);
+  });
+
+  it("entradas inválidas de las herramientas por lote devuelven isError", async () => {
+    const { call } = await connect();
+    expect((await call("filtrar_no_registrados", { sourceIds: Array.from({ length: 501 }, (_, i) => `i${i}`) })).isError).toBe(true);
+    expect((await call("registrar_movimientos", { movements: Array.from({ length: 101 }, () => mov) })).isError).toBe(true);
+    expect((await call("registrar_movimientos", { movements: "x" })).isError).toBe(true);
   });
 
   it("registrar dos veces el mismo sourceId devuelve duplicate:true la segunda", async () => {

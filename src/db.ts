@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS fixed_expenses (
   amount INTEGER NOT NULL,
   merchant TEXT
 );
+CREATE TABLE IF NOT EXISTS senders (
+  address TEXT PRIMARY KEY,
+  label TEXT
+);
 `;
 
 export function openDb(path: string): DatabaseSync {
