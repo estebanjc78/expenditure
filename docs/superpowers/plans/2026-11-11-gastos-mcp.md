@@ -185,3 +185,26 @@
 - [ ] **Step 4:** Update `README.md` (13 tools, new flow) and `docs/sync-guide.md` §1 and §4 to the sender-based flow (replace the subject-based Gmail query by `gmailQuery`; keep the table of known mail types as examples of what Claude will see, and keep the rule "Pago Rechazado and promotions are not transactions").
 - [ ] **Step 5:** Run `npm test`, `npm run build`, `npm run typecheck`; Expected: all green.
 - [ ] **Step 6:** Commit `feat: bank sender allowlist, unregistered filter and batch registration`.
+
+### Task 10: Empaquetado (npm + MCPB) y README de instalación
+
+**Added after user decision:** distribute without Docker via (1) an npm package run with `npx` and (2) a one-click `.mcpb` bundle for Claude Desktop; plus a detailed install README. A standalone executable is deferred.
+
+**Verify before building (do not assume):**
+- Current MCPB spec in https://github.com/modelcontextprotocol/mcpb (sources disagree on `manifest_version` 0.2 vs 0.3) and `npx @anthropic-ai/mcpb validate` / `pack`.
+- **Which Node version Claude Desktop bundles for `.mcpb` servers.** The server uses `node:sqlite` (Node >=22.5). If the bundled Node is older, the bundle cannot use `node:sqlite`: then decide with the controller between a WASM SQLite (e.g. sql.js, no native deps) behind the existing db layer, or documenting that the bundle is unavailable; do not ship a bundle that fails at start.
+- Package name availability on npm (`npm view <name>`); do NOT publish: publishing is the user's decision, the task ends at a tarball verified with `npm pack` and installed from it in a temp dir.
+
+**Files:**
+- Modify: `package.json` (name, version, `bin`, `files`, `engines`, `repository`/`license` placeholders marked TODO for the user, `prepack` build), `README.md` (full rewrite)
+- Create: `manifest.json` (MCPB), `scripts/build-mcpb.*` (bundle server with esbuild into one JS file, then `mcpb pack`), `LICENSE` only if the user chooses one (otherwise leave a TODO, do not invent a license)
+- Test: a smoke script `scripts/smoke-pack.*`: `npm pack` → install the tarball in a temp dir → run its bin over stdio with `GASTOS_DB=:memory:` → assert `tools/list` returns 13 tools.
+
+**README must cover (plain language, step by step):** what it is and what data it stores locally; requirements (Node >=22.5 for npm path); install A (Claude Code: `claude mcp add gastos -- npx -y <package>`), install B (Claude Desktop: double-click the `.mcpb`, with where to find the file), install C (manual JSON config for other clients); where the database lives (`GASTOS_DB`, default `~/.gastos-mcp/gastos.db`) and how to back it up / delete it; first-use walkthrough (add senders, sync, first queries, importing the fixed-expenses Excel with its format); privacy (email never read by the server; only extracted data stored); the tools list; troubleshooting (Node too old, tool not showing up, DB path); limitations (no edit/delete of a movement yet, receipt formats validated only for BBVA Colombia).
+
+- [ ] Step 1: Research the three "verify" items above and write the findings at the top of the task report; stop with NEEDS_CONTEXT if the Node-version question blocks the bundle.
+- [ ] Step 2: Make `npm pack` produce a tarball with only `dist/`, `README.md`, `package.json` (no tests, no docs/superpowers, no .superpowers); `bin` points to `dist/index.js` with a shebang and exec permission.
+- [ ] Step 3: Smoke script test (RED → GREEN) as described.
+- [ ] Step 4: MCPB manifest + build script; `mcpb validate` passes and `mcpb pack` produces the `.mcpb`; unzip and confirm it contains the single bundled server file and the manifest.
+- [ ] Step 5: Rewrite README per the list above.
+- [ ] Step 6: `npm test`, `npm run build`, `npm run typecheck`, smoke script all green; commit `feat: npm and mcpb packaging with install readme`.
