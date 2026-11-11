@@ -17,8 +17,10 @@ CREATE TABLE IF NOT EXISTS merchant_rules (
   category TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS budgets (
-  category TEXT PRIMARY KEY,
-  monthly_amount INTEGER NOT NULL
+  category TEXT NOT NULL,
+  month TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  PRIMARY KEY (category, month)
 );
 CREATE TABLE IF NOT EXISTS fixed_expenses (
   id INTEGER PRIMARY KEY,
