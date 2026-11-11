@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
+import { lookupCategory } from "./classify.js";
 import type { MovementInput } from "./types.js";
 
 function isRealCalendarDate(d: string): boolean {
@@ -40,17 +41,18 @@ function parseInput(input: MovementInput): MovementInput {
 export function addMovement(
   db: DatabaseSync,
   input: MovementInput,
-): { id: number; duplicate: boolean } {
+): { id: number; duplicate: boolean; needsClassification: boolean } {
   const m = parseInput(input);
+  const category = m.category ?? lookupCategory(db, m.merchant);
   const res = db
     .prepare(
       `INSERT INTO movements (source_id, date, amount, merchant, bank, kind, category)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(source_id) DO NOTHING`,
     )
-    .run(m.sourceId ?? null, m.date, m.amount, m.merchant, m.bank, m.kind, m.category ?? null);
+    .run(m.sourceId ?? null, m.date, m.amount, m.merchant, m.bank, m.kind, category);
   if (Number(res.changes) > 0) {
-    return { id: Number(res.lastInsertRowid), duplicate: false };
+    return { id: Number(res.lastInsertRowid), duplicate: false, needsClassification: category === null };
   }
   if (m.sourceId === undefined) {
     throw new Error("Insert into movements affected no rows without a sourceId");
@@ -61,5 +63,5 @@ export function addMovement(
   if (!existing) {
     throw new Error(`Movement with sourceId ${m.sourceId} not found after conflict`);
   }
-  return { id: existing.id, duplicate: true };
+  return { id: existing.id, duplicate: true, needsClassification: false };
 }
