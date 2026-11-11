@@ -1,3 +1,4 @@
+import { normalizeBank, normalizeMerchant } from "./classify.js";
 import type { Movement } from "./types.js";
 
 export type Dimension = "category" | "bank" | "merchant" | "day" | "month";
@@ -18,9 +19,9 @@ function keyOf(m: Movement, dim: Dimension): string {
     case "category":
       return m.category ?? UNCLASSIFIED;
     case "bank":
-      return m.bank;
+      return normalizeBank(m.bank);
     case "merchant":
-      return m.merchant;
+      return normalizeMerchant(m.merchant);
     case "day":
       return m.date;
     case "month":

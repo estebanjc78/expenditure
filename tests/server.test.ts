@@ -54,6 +54,7 @@ describe("servidor MCP", () => {
     expect(bad.isError).toBe(true);
     const badMonth = await call("estado_presupuesto", { month: "oct" });
     expect(badMonth.isError).toBe(true);
+    expect((await call("gastos_fijos_pendientes", { month: "2026-1" })).isError).toBe(true);
     expect((await call("importar_gastos_fijos", { path: "/no/existe.xlsx" })).isError).toBe(true);
     expect((await call("ultimo_movimiento_registrado")).isError).toBe(false);
   });

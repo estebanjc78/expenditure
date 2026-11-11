@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { queryMovements } from "./query.js";
+import { MONTH_RE, assertMonth } from "./month.js";
 import type { Category } from "./types.js";
 
 export const CATEGORIES: readonly Category[] = ["supermercado", "suscripcion", "fijo", "otro"];
@@ -16,10 +17,9 @@ export interface CategoryStatus {
   alert: boolean;
 }
 
-const monthRe = /^\d{4}-(0[1-9]|1[0-2])$/;
 const budgetSchema = z.object({
   category: z.enum(["supermercado", "suscripcion", "fijo", "otro"]),
-  month: z.union([z.literal(DEFAULT_MONTH), z.string().regex(monthRe, "month must be YYYY-MM or 'default'")]),
+  month: z.union([z.literal(DEFAULT_MONTH), z.string().regex(MONTH_RE, "month must be YYYY-MM or 'default'")]),
   amount: z.number().int("amount must be an integer").positive("amount must be positive"),
 });
 
@@ -64,7 +64,7 @@ function buildStatus(category: Category, budget: number | null, spent: number): 
 }
 
 export function monthStatus(db: DatabaseSync, month: string, bank?: string): CategoryStatus[] {
-  if (!monthRe.test(month)) throw new Error("Invalid month: must be YYYY-MM");
+  assertMonth(month);
   const { groups } = queryMovements(db, {
     filters: { month, ...(bank ? { bank } : {}) },
     groupBy: ["category"],

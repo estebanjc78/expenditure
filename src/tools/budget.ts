@@ -5,17 +5,18 @@ import { setBudget } from "../domain/budget.js";
 import { budgetOverview } from "../domain/budget-overview.js";
 import { setMerchantRule } from "../domain/classify.js";
 import { importFixedExpenses, pendingFixed } from "../domain/fixed.js";
+import { MONTH_RE } from "../domain/month.js";
 import { run } from "./helpers.js";
 
 const category = z.enum(["supermercado", "suscripcion", "fijo", "otro"]);
-const month = z.string().describe("Mes en formato YYYY-MM");
+const month = z.string().regex(MONTH_RE, "month must be YYYY-MM").describe("Mes en formato YYYY-MM");
 
 export function registerBudgetTools(server: McpServer, db: DatabaseSync): void {
   server.registerTool(
     "clasificar_comercio",
     {
       description:
-        "Asigna una categoría a un comercio y reclasifica sus movimientos pendientes y los futuros. " +
+        "Asigna una categoría a un comercio y reclasifica todos los gastos de ese comercio (también los ya clasificados) y los futuros. " +
         "Llámala después de que el usuario te diga la categoría de un comercio (cuando registrar_movimiento devolvió needsClassification:true).",
       inputSchema: { merchant: z.string().trim().min(1, "merchant is required"), category },
     },

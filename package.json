@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "engines": {
+    "node": ">=22.5"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

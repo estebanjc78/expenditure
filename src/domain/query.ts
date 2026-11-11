@@ -1,5 +1,7 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { z } from "zod";
+import { normalizeBank } from "./classify.js";
+import { MONTH_RE } from "./month.js";
 import { buildTree, UNCLASSIFIED, type GroupNode } from "./query-tree.js";
 import type { Movement } from "./types.js";
 
@@ -21,7 +23,7 @@ export const querySchema = z.object({
   filters: z.object({
     from: dateField.optional(),
     to: dateField.optional(),
-    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "month must be YYYY-MM").optional(),
+    month: z.string().regex(MONTH_RE, "month must be YYYY-MM").optional(),
     category: z.enum(["supermercado", "suscripcion", "fijo", "otro", UNCLASSIFIED]).optional(),
     bank: z.string().min(1).optional(),
     merchant: z.string().min(1).optional(),
@@ -66,7 +68,7 @@ function buildWhere(f: Filters, includeKind: boolean): Where {
   if (f.to) add("date <= ?", f.to);
   if (f.category === UNCLASSIFIED) clauses.push("category IS NULL");
   else if (f.category) add("category = ?", f.category);
-  if (f.bank) add("bank = ? COLLATE NOCASE", f.bank);
+  if (f.bank) add("bank = ? COLLATE NOCASE", normalizeBank(f.bank));
   if (f.merchant) add("merchant = ? COLLATE NOCASE", f.merchant);
   if (includeKind && f.kind) add("kind = ?", f.kind);
   if (f.minAmount !== undefined) add("amount >= ?", f.minAmount);

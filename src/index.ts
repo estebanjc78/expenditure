@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { resolveDbPath } from "./db-path.js";
 import { openDb } from "./db.js";
 import { createServer } from "./server.js";
 
-const dbPath = process.env.GASTOS_DB ?? join(homedir(), ".gastos-mcp", "gastos.db");
-if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true });
+const dbPath = resolveDbPath(process.env.GASTOS_DB, homedir());
+if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true, mode: 0o700 });
 
 const server = createServer(openDb(dbPath));
 await server.connect(new StdioServerTransport());

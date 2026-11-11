@@ -35,8 +35,8 @@ describe("queryMovements", () => {
     const r = queryMovements(seed(), { filters: { month: "2026-10" }, groupBy: ["category", "merchant"] });
     const sup = r.groups.find((g) => g.key === "supermercado")!;
     expect(sup.children!.map((c) => [c.key, c.total])).toEqual([
-      ["Exito", 100000],
-      ["Jumbo", 50000],
+      ["exito", 100000],
+      ["jumbo", 50000],
     ]);
   });
 
@@ -46,7 +46,7 @@ describe("queryMovements", () => {
       groupBy: ["merchant"],
       includeMovements: true,
     });
-    expect(r.groups[0]!.key).toBe("Exito");
+    expect(r.groups[0]!.key).toBe("exito");
     expect(r.groups[0]!.movements).toHaveLength(1);
     expect(r.groups[0]!.movements![0]).toMatchObject({ merchant: "Exito", amount: 100000 });
     expect(r.groups[0]!.children).toBeUndefined();
@@ -75,7 +75,7 @@ describe("queryMovements", () => {
 
   it("filtro bank y filtro text combinados", () => {
     const r = queryMovements(seed(), { filters: { bank: "bbva", text: "xit" }, groupBy: ["merchant"] });
-    expect(r.groups).toEqual([{ key: "Exito", total: 109000, count: 2 }]);
+    expect(r.groups).toEqual([{ key: "exito", total: 109000, count: 2 }]);
   });
 
   it("text escapa % y _ como literales", () => {
@@ -92,7 +92,7 @@ describe("queryMovements", () => {
 
   it('category "sin_categoria" devuelve los no clasificados', () => {
     const r = queryMovements(seed(), { filters: { category: "sin_categoria" }, groupBy: ["merchant"] });
-    expect(r.groups).toEqual([{ key: "Rappi", total: 200000, count: 1 }]);
+    expect(r.groups).toEqual([{ key: "rappi", total: 200000, count: 1 }]);
   });
 
   it("from/to y minAmount/maxAmount filtran", () => {
@@ -100,7 +100,7 @@ describe("queryMovements", () => {
       filters: { from: "2026-10-10", to: "2026-10-25", minAmount: 40000, maxAmount: 200000 },
       groupBy: ["merchant"],
     });
-    expect(r.groups.map((g) => g.key)).toEqual(["Rappi", "Jumbo"]);
+    expect(r.groups.map((g) => g.key)).toEqual(["rappi", "jumbo"]);
   });
 
   it("valores con comillas no rompen la consulta (parámetros enlazados)", () => {
@@ -129,5 +129,16 @@ describe("querySchema", () => {
   });
   it("acepta consulta válida", () => {
     expect(querySchema.safeParse({ filters: { month: "2026-10" }, groupBy: ["category"] }).success).toBe(true);
+  });
+
+  it("agrupa banco y comercio con valores normalizados", () => {
+    const db = openDb(":memory:");
+    const m = { date: "2026-10-05", amount: 10, kind: "gasto" as const, category: "otro" as const };
+    addMovement(db, { ...m, merchant: "EXITO", bank: "BBVA" });
+    addMovement(db, { ...m, merchant: "Exito ", bank: "bbva " });
+    const banks = queryMovements(db, { filters: {}, groupBy: ["bank"] });
+    expect(banks.groups.map((g) => [g.key, g.count])).toEqual([["bbva", 2]]);
+    const merchants = queryMovements(db, { filters: { bank: " BBVA" }, groupBy: ["merchant"] });
+    expect(merchants.groups.map((g) => [g.key, g.count])).toEqual([["exito", 2]]);
   });
 });

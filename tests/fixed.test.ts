@@ -72,4 +72,36 @@ describe("fixed expenses", () => {
     const db = openDb(":memory:");
     await expect(importFixedExpenses(db, await makeXlsx([["A", 1]], ["nombre", "valor"]))).rejects.toThrow("monto");
   });
+
+  it("rechaza un mes inválido", async () => {
+    const db = openDb(":memory:");
+    expect(() => pendingFixed(db, "2026-1")).toThrow(/YYYY-MM/);
+    expect(() => pendingFixed(db, "noviembre")).toThrow(/YYYY-MM/);
+  });
+
+  it("comercio en richText en blanco cae al nombre", async () => {
+    const db = openDb(":memory:");
+    const p = await makeXlsx([["Netflix", 40000, { richText: [{ text: "  " }] }]]);
+    await importFixedExpenses(db, p);
+    addMovement(db, { date: "2026-10-05", amount: 40000, merchant: "NETFLIX.COM", bank: "bbva", kind: "gasto", category: "suscripcion" });
+    expect(pendingFixed(db, "2026-10")[0]).toMatchObject({ paid: true });
+  });
+
+  it("palabra clave de una palabra coincide solo como palabra completa", async () => {
+    const db = openDb(":memory:");
+    await importFixedExpenses(db, await makeXlsx([["Luz", 100, "luz"]]));
+    addMovement(db, { date: "2026-10-05", amount: 100, merchant: "Luzia", bank: "bbva", kind: "gasto", category: "otro" });
+    expect(pendingFixed(db, "2026-10")[0]).toMatchObject({ paid: false });
+    addMovement(db, { date: "2026-10-06", amount: 100, merchant: "Pago luz Enel", bank: "bbva", kind: "gasto", category: "fijo" });
+    expect(pendingFixed(db, "2026-10")[0]).toMatchObject({ paid: true, paidAmount: 100 });
+  });
+
+  it("palabra clave de varias palabras coincide como secuencia contigua", async () => {
+    const db = openDb(":memory:");
+    await importFixedExpenses(db, await makeXlsx([["Agua", 100, "acueducto bogota"]]));
+    addMovement(db, { date: "2026-10-05", amount: 100, merchant: "Bogota acueducto", bank: "bbva", kind: "gasto", category: "otro" });
+    expect(pendingFixed(db, "2026-10")[0]).toMatchObject({ paid: false });
+    addMovement(db, { date: "2026-10-06", amount: 100, merchant: "Pago Acueducto Bogota SA", bank: "bbva", kind: "gasto", category: "fijo" });
+    expect(pendingFixed(db, "2026-10")[0]).toMatchObject({ paid: true });
+  });
 });

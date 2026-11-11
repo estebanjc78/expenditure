@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
-import { lookupCategory } from "./classify.js";
+import { lookupCategory, normalizeBank } from "./classify.js";
 import type { MovementInput } from "./types.js";
 
 function isRealCalendarDate(d: string): boolean {
@@ -43,16 +43,17 @@ export function addMovement(
   input: MovementInput,
 ): { id: number; duplicate: boolean; needsClassification: boolean } {
   const m = parseInput(input);
-  const category = m.category ?? lookupCategory(db, m.merchant);
+  // Only gastos are classified; ingreso/transferencia_propia keep an explicit category or null.
+  const category = m.category ?? (m.kind === "gasto" ? lookupCategory(db, m.merchant) : null);
   const res = db
     .prepare(
       `INSERT INTO movements (source_id, date, amount, merchant, bank, kind, category)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(source_id) DO NOTHING`,
     )
-    .run(m.sourceId ?? null, m.date, m.amount, m.merchant, m.bank, m.kind, category);
+    .run(m.sourceId ?? null, m.date, m.amount, m.merchant, normalizeBank(m.bank), m.kind, category);
   if (Number(res.changes) > 0) {
-    return { id: Number(res.lastInsertRowid), duplicate: false, needsClassification: category === null };
+    return { id: Number(res.lastInsertRowid), duplicate: false, needsClassification: m.kind === "gasto" && category === null };
   }
   if (m.sourceId === undefined) {
     throw new Error("Insert into movements affected no rows without a sourceId");

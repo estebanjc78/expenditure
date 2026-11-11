@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import ExcelJS from "exceljs";
 import { normalizeMerchant } from "./classify.js";
+import { assertMonth } from "./month.js";
 
 /** Header names expected in row 1 of the first worksheet (case-insensitive). */
 export const FIXED_COLUMNS = { name: "nombre", amount: "monto", merchant: "comercio" } as const;
@@ -21,7 +22,7 @@ interface FixedRow {
 function cellText(v: ExcelJS.CellValue): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "object" && "result" in v) return cellText(v.result as ExcelJS.CellValue);
-  if (typeof v === "object" && "richText" in v) return v.richText.map((t) => t.text).join("");
+  if (typeof v === "object" && "richText" in v) return v.richText.map((t) => t.text).join("").trim();
   return String(v).trim();
 }
 
@@ -85,7 +86,20 @@ export async function importFixedExpenses(
   return { imported: rows.length };
 }
 
+/**
+ * Whole-word match: the keyword's words must appear as a contiguous word sequence
+ * in the merchant. Ambiguity remains possible (a short keyword may match unrelated
+ * merchants) and one payment may satisfy several fixed expenses.
+ */
+function matchesKeyword(merchant: string, keyword: string): boolean {
+  if (!keyword) return false;
+  return ` ${merchant.replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `.includes(
+    ` ${keyword.replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `,
+  );
+}
+
 export function pendingFixed(db: DatabaseSync, month: string): FixedStatus[] {
+  assertMonth(month);
   const fixed = db
     .prepare("SELECT name, amount, merchant FROM fixed_expenses ORDER BY id")
     .all() as unknown as FixedRow[];
@@ -95,8 +109,8 @@ export function pendingFixed(db: DatabaseSync, month: string): FixedStatus[] {
       .all(month) as { merchant: string; amount: number }[]
   ).map((p) => ({ merchant: normalizeMerchant(p.merchant), amount: p.amount }));
   return fixed.map((f) => {
-    const keyword = normalizeMerchant(f.merchant ?? f.name);
-    const hits = payments.filter((p) => p.merchant.includes(keyword));
+    const keyword = normalizeMerchant(f.merchant ?? "") || normalizeMerchant(f.name);
+    const hits = payments.filter((p) => matchesKeyword(p.merchant, keyword));
     return hits.length
       ? { name: f.name, expected: f.amount, paid: true, paidAmount: hits.reduce((s, p) => s + p.amount, 0) }
       : { name: f.name, expected: f.amount, paid: false };

@@ -13,6 +13,10 @@ export function registerMovementTools(server: McpServer, db: DatabaseSync): void
         "Registra UN movimiento financiero ya interpretado desde un comprobante bancario (correo) o un gasto en efectivo. " +
         "Pasa sourceId = el id del mensaje de correo para evitar duplicados (si ya existe devuelve duplicate:true). " +
         "Montos en COP enteros, fecha YYYY-MM-DD, kind: gasto | ingreso | transferencia_propia. " +
+        "La fecha debe ser la fecha local de Colombia (America/Bogota) del comprobante, NO la fecha del encabezado del correo ni UTC: " +
+        "una compra a las 20:00 del 31-oct es 2026-10-31 aunque el encabezado diga 01-nov UTC. " +
+        "Pasa category SOLO si el usuario la dijo explícitamente; si no, omítela y deja que decida la regla del comercio " +
+        "(si no hay regla, la respuesta trae needsClassification:true, que aplica solo a gastos). " +
         "Si la respuesta trae needsClassification:true, pregunta al usuario a qué categoría pertenece el comercio " +
         "(supermercado, suscripcion, fijo u otro) y llama a clasificar_comercio.",
       inputSchema: movementInputSchema.shape,
