@@ -46,4 +46,19 @@ describe("addMovement", () => {
     expect(b.duplicate).toBe(false);
     expect(b.id).not.toBe(a.id);
   });
+
+  it.each(["2026-02-31", "2026-13-01", "2026-04-31"])("rechaza fecha imposible %s", (date) => {
+    const db = openDb(":memory:");
+    expect(() => addMovement(db, { ...base, date })).toThrow(/date/);
+  });
+
+  it.each(["2026-02-28", "2024-02-29"])("acepta fecha valida %s", (date) => {
+    const db = openDb(":memory:");
+    expect(addMovement(db, { ...base, date })).toMatchObject({ duplicate: false });
+  });
+
+  it.each([["abc"], [Number.NaN]])("rechaza monto no numerico %s nombrando amount", (amount) => {
+    const db = openDb(":memory:");
+    expect(() => addMovement(db, { ...base, amount: amount as number })).toThrow(/amount/);
+  });
 });

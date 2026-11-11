@@ -2,12 +2,20 @@ import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import type { MovementInput } from "./types.js";
 
+function isRealCalendarDate(d: string): boolean {
+  const t = new Date(`${d}T00:00:00Z`).getTime();
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === d;
+}
+
 export const movementInputSchema = z.object({
   sourceId: z.string().min(1).optional(),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD")
-    .refine((d) => !Number.isNaN(Date.parse(d)), "date must be a real date"),
+    .refine(
+      isRealCalendarDate,
+      "date must be a real calendar date",
+    ),
   amount: z
     .number({ error: "amount must be a number" })
     .int("amount must be an integer (COP)")
@@ -44,8 +52,14 @@ export function addMovement(
   if (Number(res.changes) > 0) {
     return { id: Number(res.lastInsertRowid), duplicate: false };
   }
+  if (m.sourceId === undefined) {
+    throw new Error("Insert into movements affected no rows without a sourceId");
+  }
   const existing = db
     .prepare("SELECT id FROM movements WHERE source_id = ?")
-    .get(m.sourceId ?? null) as { id: number };
+    .get(m.sourceId) as { id: number } | undefined;
+  if (!existing) {
+    throw new Error(`Movement with sourceId ${m.sourceId} not found after conflict`);
+  }
   return { id: existing.id, duplicate: true };
 }
