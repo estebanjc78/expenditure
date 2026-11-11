@@ -1,4 +1,5 @@
 // Smoke test: npm pack -> install the tarball in a temp dir -> run its bin over stdio -> expect 13 tools.
+// npm always ships root README* files, so README.es.md is allowed alongside README.md.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,7 +18,7 @@ try {
   });
   const [info] = JSON.parse(packOut);
   const bad = info.files.map((f) => f.path).filter(
-    (p) => !(p.startsWith("dist/") || p === "README.md" || p === "package.json" || p === "LICENSE"),
+    (p) => !(p.startsWith("dist/") || p === "README.md" || p === "README.es.md" || p === "package.json" || p === "LICENSE"),
   );
   if (bad.length > 0) throw new Error(`unexpected files in tarball: ${bad.join(", ")}`);
 
