@@ -190,6 +190,8 @@
 
 **Added after user decision:** distribute without Docker via (1) an npm package run with `npx` and (2) a one-click `.mcpb` bundle for Claude Desktop; plus a detailed install README. A standalone executable is deferred.
 
+**Public repo (https://github.com/estebanjc78/expenditure):** the project is public and meant to reach a wide audience, so ALL user-facing documentation is written in English first: `README.md` in English (the GitHub front page: one-line pitch, a real usage example, architecture diagram, privacy section, install paths, tool list, limitations), with a Spanish `README.es.md` linked from the top; `docs/sync-guide.md` translated to English (keep the Spanish original as `docs/sync-guide.es.md`); package name `expenditure` (verified free on npm; do not publish). Tool descriptions stay as they are. License: leave a LICENSE decision to the user (suggest MIT, do not add one without their yes).
+
 **Verify before building (do not assume):**
 - Current MCPB spec in https://github.com/modelcontextprotocol/mcpb (sources disagree on `manifest_version` 0.2 vs 0.3) and `npx @anthropic-ai/mcpb validate` / `pack`.
 - **Which Node version Claude Desktop bundles for `.mcpb` servers.** The server uses `node:sqlite` (Node >=22.5). If the bundled Node is older, the bundle cannot use `node:sqlite`: then decide with the controller between a WASM SQLite (e.g. sql.js, no native deps) behind the existing db layer, or documenting that the bundle is unavailable; do not ship a bundle that fails at start.
