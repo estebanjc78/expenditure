@@ -161,3 +161,27 @@
 - [ ] **Step 2:** Escribir `docs/sync-guide.md`: la consulta de Gmail que encuentra los comprobantes, cómo mapear cada mail a `registrar_movimiento` (incluido cuándo es `ingreso` o `transferencia_propia`), usar `ultimo_movimiento_registrado` para sincronizar desde esa fecha, y preguntar a Esteban cuando `needsClassification` sea true.
 - [ ] **Step 3:** Prueba de punta a punta en Claude: sincronizar, pedir "cómo van los gastos de este mes por rubro", abrir una categoría. Verificar que los totales coinciden con la suma manual de los comprobantes.
 - [ ] **Step 4:** Commit `docs: sync guide validated against real receipts`.
+
+### Task 9: Remitentes bancarios y registro por lote
+
+**Added after user feedback:** filter by sender instead of by subject, avoid re-reading registered mails, and register in batches. The LLM is always Claude (client side); the server has no model.
+
+**Files:**
+- Modify: `src/db.ts` (new table `senders(address TEXT PRIMARY KEY, label TEXT)`), `src/server.ts` and `src/tools/*` (register 5 new tools), `README.md`, `docs/sync-guide.md`
+- Create: `src/domain/senders.ts`, `src/domain/batch.ts`, `src/tools/senders.ts`
+- Test: `tests/senders.test.ts`, `tests/batch.test.ts`, update `tests/server.test.ts` (tool count 8 → 13)
+
+**Interfaces:**
+- Consumes: `addMovement`, `MovementInput`, `movementInputSchema`.
+- Produces:
+  - `addSender(db, address: string, label?: string): { address: string; added: boolean }` (address trimmed + lowercased, must contain `@`; re-adding is not an error, `added:false`); `removeSender(db, address): { removed: boolean }`; `listSenders(db): Array<{ address: string; label: string | null }>` sorted by address; `gmailSenderQuery(senders): string` → `from:(a@x.com OR b@y.com)` (empty list → empty string).
+  - `filterUnregistered(db, sourceIds: string[]): string[]` (returns the input ids, in order and without duplicates, that are NOT registered; an id counts as registered if some movement has `source_id` equal to it or starting with `<id>#`).
+  - `addMovements(db, inputs: unknown[]): BatchResult` with `BatchResult = { results: Array<{ index: number; id?: number; duplicate?: boolean; needsClassification?: boolean; error?: string }>; summary: { registered: number; duplicates: number; failed: number } }`; max 100 items (more → throws "max 100"); each item validated and inserted independently (one bad item never aborts the others), all inside one transaction.
+  - Tools: `listar_remitentes` (returns `{senders, gmailQuery}`), `agregar_remitente` `{address, label?}`, `quitar_remitente` `{address}`, `filtrar_no_registrados` `{sourceIds: string[]}` (max 500), `registrar_movimientos` `{movements: MovementInput[]}` (max 100). Descriptions in Spanish telling Claude the flow: listar_remitentes → search Gmail with `gmailQuery` and the date → filtrar_no_registrados with the found message ids → interpret each mail (it may be a promotion, a rejected payment, or not a transaction: do not register those) → registrar_movimientos.
+
+- [ ] **Step 1:** Tests: senders (normalization, re-add, remove, list order, gmailQuery with 0/1/2 senders); filterUnregistered (registered id, `id#1` counts as registered, order kept, duplicates removed, empty input); addMovements (3 valid → registered 3; one invalid amount among valid → failed 1 with error naming `amount` and the rest registered; same sourceId twice in one batch → second duplicate; 101 items throws; per-item `needsClassification` reported); server tests: 13 tools listed, `registrar_movimientos` and `filtrar_no_registrados` end-to-end, invalid input isError.
+- [ ] **Step 2:** Run; Expected: FAIL.
+- [ ] **Step 3:** Implement the signatures above; reuse `addMovement` per item; the new table via `CREATE TABLE IF NOT EXISTS` in `openDb`.
+- [ ] **Step 4:** Update `README.md` (13 tools, new flow) and `docs/sync-guide.md` §1 and §4 to the sender-based flow (replace the subject-based Gmail query by `gmailQuery`; keep the table of known mail types as examples of what Claude will see, and keep the rule "Pago Rechazado and promotions are not transactions").
+- [ ] **Step 5:** Run `npm test`, `npm run build`, `npm run typecheck`; Expected: all green.
+- [ ] **Step 6:** Commit `feat: bank sender allowlist, unregistered filter and batch registration`.
