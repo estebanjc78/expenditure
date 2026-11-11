@@ -46,6 +46,6 @@ export function addMovement(
   }
   const existing = db
     .prepare("SELECT id FROM movements WHERE source_id = ?")
-    .get(m.sourceId) as { id: number };
+    .get(m.sourceId ?? null) as { id: number };
   return { id: existing.id, duplicate: true };
 }
