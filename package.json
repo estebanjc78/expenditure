@@ -1,16 +1,42 @@
 {
-  "name": "mcp-gastos",
+  "name": "expenditures-control",
   "version": "0.1.0",
-  "private": true,
+  "description": "MCP server that keeps bank-notification movements in a local SQLite file and answers budget questions by category and month.",
   "type": "module",
+  "bin": {
+    "expenditures-control": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc && node -e \"require(\\\"fs\\\").chmodSync(\\\"dist/index.js\\\",0o755)\"",
+    "prepack": "npm run build",
     "test": "vitest run",
-    "build": "tsc",
-    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "smoke:pack": "node scripts/smoke-pack.mjs",
+    "build:mcpb": "node scripts/build-mcpb.mjs"
   },
   "engines": {
     "node": ">=22.5"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/estebanjc78/expenditures-control.git"
+  },
+  "homepage": "https://github.com/estebanjc78/expenditures-control#readme",
+  "bugs": {
+    "url": "https://github.com/estebanjc78/expenditures-control/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "budget",
+    "expenses",
+    "sqlite",
+    "colombia"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "exceljs": "^4.4.0",
@@ -19,6 +45,8 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "esbuild": "^0.28.2",
+    "@anthropic-ai/mcpb": "^2.1.2"
   }
 }
