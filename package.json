@@ -1,6 +1,8 @@
 {
   "name": "expenditures-control",
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "Esteban J. Campos",
   "description": "MCP server that keeps bank-notification movements in a local SQLite file and answers budget questions by category and month.",
   "type": "module",
   "bin": {

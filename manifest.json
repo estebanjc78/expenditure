@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "description": "Keeps bank-notification movements in a local SQLite file and answers budget questions by category and month.",
   "long_description": "Claude reads your bank notification emails with its own Gmail connector (read-only) and hands this extension only the extracted data: date, amount, merchant, bank, kind. Everything is stored in a SQLite file on your computer (default ~/.gastos-mcp/gastos.db). The extension never touches your email.",
-  "author": { "name": "Esteban Campos", "url": "https://github.com/estebanjc78" },
+  "author": { "name": "Esteban J. Campos", "url": "https://github.com/estebanjc78" },
   "repository": { "type": "git", "url": "https://github.com/estebanjc78/expenditures-control" },
   "homepage": "https://github.com/estebanjc78/expenditures-control",
   "support": "https://github.com/estebanjc78/expenditures-control/issues",
@@ -37,5 +37,5 @@
     "platforms": ["darwin", "win32", "linux"],
     "runtimes": { "node": ">=22.5.0" }
   },
-  "license": "UNLICENSED"
+  "license": "MIT"
 }

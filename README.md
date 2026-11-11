@@ -179,4 +179,4 @@ Repository: https://github.com/estebanjc78/expenditures-control
 
 ## License
 
-TODO: the owner has not chosen a license yet (MIT is the suggested default). Until a LICENSE file is added, all rights are reserved.
+[MIT](LICENSE) © 2026 Esteban J. Campos

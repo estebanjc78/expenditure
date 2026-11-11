@@ -179,4 +179,4 @@ Repositorio: https://github.com/estebanjc78/expenditures-control
 
 ## Licencia
 
-TODO: el dueño aún no ha elegido licencia (se sugiere MIT). Mientras no exista un archivo LICENSE, todos los derechos están reservados.
+[MIT](LICENSE) © 2026 Esteban J. Campos
