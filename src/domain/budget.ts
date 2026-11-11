@@ -58,7 +58,7 @@ function buildStatus(category: Category, budget: number | null, spent: number): 
     budget,
     spent,
     remaining: budget - spent,
-    percent: Math.round((spent * 100) / budget),
+    percent: Math.floor((spent * 100) / budget),
     alert,
   };
 }
