@@ -9,7 +9,7 @@ Flujo de una solicitud desde el asistente hasta la base SQLite local y de vuelta
 flowchart TD
     U["Usuario pide sincronizar o consultar gastos"] --> C["Cliente MCP / Claude"]
     C -->|"Inicializa conexión y descubre capacidades"| S["Servidor MCP expenditures-control"]
-    S -->|"Lista las 20 herramientas"| C
+    S -->|"Lista las 23 herramientas"| C
 
     C --> D{"¿Cómo se leen los correos?"}
 
@@ -22,7 +22,10 @@ flowchart TD
     E --> C
     V -->|"Sí"| G["API de Gmail: correos de los remitentes autorizados"]
     G -->|"Solo los correos aún no procesados"| P["Parser por banco: expresiones regulares sobre Detalles de la operación"]
-    P --> K{"¿Es un movimiento?"}
+    P --> N{"¿El remitente tiene reglas?"}
+    N -->|"No: banco nuevo"| L["Claude pide 3 o 4 comprobantes, el usuario los confirma, el servidor prueba las reglas contra ellos y las guarda"]
+    L --> P
+    N -->|"Sí: incluidas o aprendidas"| K{"¿Es un movimiento?"}
     K -->|"No: rechazado o aviso duplicado"| X["Se omite y se recuerda"]
     K -->|"Divisa extranjera"| R["Se reporta para revisión"]
     K -->|"Formato desconocido"| Y["Se lista como no reconocido"]

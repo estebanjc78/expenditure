@@ -138,7 +138,7 @@ Opcional. Crea un `.xlsx` con la primera hoja así (encabezados en la fila 1, si
 
 `comercio` es la palabra clave para detectar el pago entre tus movimientos (palabras completas, sin distinguir acentos ni mayúsculas; si está vacío se usa `nombre`). Los bancos cortan los nombres largos, así que una palabra clave que termine en `*` también acepta la última palabra cortada (`compania de med*`). Luego pídele a Claude que lo importe desde la ruta del archivo. Importar reemplaza la lista anterior.
 
-## Herramientas (20)
+## Herramientas (23)
 
 Los nombres de las herramientas están en español.
 
@@ -163,6 +163,9 @@ Los nombres de las herramientas están en español.
 | `sincronizar_gmail` | Descarga y procesa los correos del banco de un rango de fechas y registra los movimientos; devuelve un resumen. |
 | `clasificar_comercios` | Clasifica varios comercios de una vez y reclasifica sus gastos. |
 | `gastos_recurrentes_no_listados` | Suscripciones y gastos fijos del mes que no están en tu lista de gastos fijos: encuentra los que olvidaste. |
+| `formatos_banco` | Qué bancos sabe leer el servidor (incluidos y aprendidos) y qué remitentes autorizados todavía necesitan reglas. |
+| `configurar_formato_banco` | Enseña al servidor un banco nuevo con 3 o 4 comprobantes confirmados; se guarda solo si todos pasan. |
+| `eliminar_formato_banco` | Borra las reglas aprendidas de un remitente. |
 | `abrir_panel` | Abre en tu navegador el panel interactivo de gastos (local, solo lectura). |
 
 ## Solución de problemas
@@ -177,7 +180,7 @@ Los nombres de las herramientas están en español.
 
 - Todavía no hay herramienta para editar o borrar un movimiento.
 - La sincronización con Gmail usa una app de Google incluida en el paquete (el mantenedor la configura una sola vez, ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)). Hasta que Google la verifique, muestra una pantalla de "app no verificada" y permite 100 usuarios en total. Se probó con respuestas de Google simuladas y con formatos reales de correos de BBVA, pero todavía no de punta a punta contra los servidores de Google.
-- Solo hay parsers para BBVA Colombia. Otros bancos necesitan un parser en `src/parsers/` (o la vía manual con el conector de Gmail de Claude).
+- BBVA Colombia viene incluido. **Cualquier otro banco se aprende con 3 o 4 avisos tuyos** (ver [docs/learn-a-bank.es.md](docs/learn-a-bank.es.md)): Claude redacta las reglas de lectura, el servidor las prueba contra los ejemplos que confirmaste y las guarda en tu base de datos. Probado con ejemplos inventados de Argentina y México, todavía no con correos reales de esos bancos. Una moneda por base de datos.
 - Las transferencias en moneda extranjera no se registran solas; se reportan para tu revisión.
 - El servidor confía en la dirección `From` que reporta Gmail y se apoya en la protección anti-suplantación de Gmail; todavía no verifica DKIM por su cuenta. El texto tomado de los correos (comercio, asunto) se limpia y se acota antes de llegar al modelo, pero trátalo como datos.
 - Los montos son solo COP enteros.
@@ -193,7 +196,7 @@ npm install
 npm test            # pruebas unitarias
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 20 herramientas por stdio
+npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 23 herramientas por stdio
 npm run build:mcpb  # opcional: genera build/expenditures-control.mcpb
 ```
 

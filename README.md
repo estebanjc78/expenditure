@@ -136,7 +136,7 @@ Optional. Create an `.xlsx` with the first sheet like this (headers on row 1, ca
 
 `comercio` is the keyword used to detect the payment among your movements (whole words, accents and case ignored; if empty, `nombre` is used). Banks cut long merchant names, so a keyword ending in `*` also matches a truncated last word (`compania de med*`). Then ask Claude to import it from the file path. Importing replaces the previous list.
 
-## Tools (20)
+## Tools (23)
 
 The tool names are in Spanish.
 
@@ -161,6 +161,9 @@ The tool names are in Spanish.
 | `sincronizar_gmail` | Download and parse bank mails for a date range and register the movements; returns a summary. |
 | `clasificar_comercios` | Classify many merchants at once and reclassify their expenses. |
 | `gastos_recurrentes_no_listados` | Subscriptions and fixed charges of a month that are not in your fixed-expenses list: find the ones you forgot. |
+| `formatos_banco` | Which banks the server can read (built-in and learned) and which authorized senders still need rules. |
+| `configurar_formato_banco` | Teach the server a new bank from 3-4 confirmed example notices; saved only if all pass. |
+| `eliminar_formato_banco` | Delete learned rules for a sender. |
 | `abrir_panel` | Open the interactive spending dashboard in your browser (local, read-only). |
 
 ## Troubleshooting
@@ -175,7 +178,7 @@ The tool names are in Spanish.
 
 - No tool to edit or delete a movement yet.
 - Gmail sync uses a Google app shipped with the package (the maintainer sets it up once, see [docs/gmail-setup.md](docs/gmail-setup.md)). Until Google verifies it, Google shows an "unverified app" screen and allows 100 users in total. It has been tested against simulated Google responses and real BBVA email formats, not yet end to end against Google's servers.
-- Parsers exist only for BBVA Colombia. Other banks need a parser in `src/parsers/` (or the manual path through Claude's Gmail connector).
+- BBVA Colombia is built in. **Any other bank is learned from 3 or 4 of your own notices** (see [docs/learn-a-bank.md](docs/learn-a-bank.md)): Claude writes the reading rules, the server tests them against the examples you confirmed and stores them in your database. Tested with made-up Argentine and Mexican examples, not yet with real mails of those banks. One currency per database.
 - Foreign-currency transfers are not registered automatically; they are reported for your review.
 - The server trusts the `From` address Gmail reports and relies on Gmail's own spoofing protection; it does not verify DKIM itself yet. Text taken from emails (merchant, subject) is cleaned and length-limited before it reaches the model, but treat it as data.
 - Amounts are integer COP only.
@@ -191,7 +194,7 @@ npm install
 npm test            # unit tests
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 20 tools over stdio
+npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 23 tools over stdio
 npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
 npm run build && node scripts/panel-demo.mjs --open  # look at the dashboard with made-up data
 ```

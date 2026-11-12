@@ -13,6 +13,7 @@ export function registerSenderTools(server: McpServer, db: DatabaseSync): void {
     {
       description:
         "Lista los remitentes bancarios autorizados y devuelve {senders, gmailQuery}. " +
+        "Antes de sincronizar con el servidor, revisa formatos_banco: si un remitente autorizado NO tiene reglas de lectura (banco que no es BBVA Colombia), aprende su formato con configurar_formato_banco pidiéndole al usuario 3 o 4 comprobantes reales. "+
         "Flujo de sincronización: 1) listar_remitentes; 2) busca en Gmail con gmailQuery más una fecha (ej. `<gmailQuery> after:YYYY/MM/DD`; " +
         "la fecha sale de ultimo_movimiento_registrado); 3) pasa los ids de los mensajes encontrados a filtrar_no_registrados; " +
         "4) lee e interpreta cada correo pendiente: promociones, pagos rechazados (\"Pago Rechazado\") y correos que no son una transacción NO se registran; " +
