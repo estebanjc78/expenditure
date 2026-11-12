@@ -70,7 +70,7 @@ export function registerSenderTools(server: McpServer, db: DatabaseSync): void {
         "No incluyas promociones, pagos rechazados (\"Pago Rechazado\") ni correos que no sean transacciones. " +
         "Para cada ítem con needsClassification:true pregunta al usuario la categoría del comercio y llama a clasificar_comercio. " +
         "Revisa los ítems con error, corrígelos y reenvíalos. " +
-        "Cuando termines de cargar movimientos, abre el panel con abrir_panel sin esperar a que el usuario lo pida.",
+        "Cuando termines de cargar movimientos, muestra el panel con ver_panel sin esperar a que el usuario lo pida.",
       inputSchema: { movements: z.array(z.unknown()).max(MAX_BATCH) },
     },
     ({ movements }) => run(() => addMovements(db, movements)),

@@ -40,7 +40,9 @@
     { "name": "formatos_banco", "description": "Show which banks the server can read and which senders still need rules." },
     { "name": "configurar_formato_banco", "description": "Learn a new bank's notices from 3-4 confirmed examples; saved only if all pass." },
     { "name": "eliminar_formato_banco", "description": "Delete learned reading rules for a sender." },
-    { "name": "abrir_panel", "description": "Open an interactive spending dashboard in your browser (local, read-only)." },
+    { "name": "ver_panel", "description": "Show an interactive spending report inside the Claude conversation." },
+    { "name": "datos_panel", "description": "Private tool the report uses to fetch its data (not for the model)." },
+    { "name": "abrir_panel", "description": "Open the interactive spending dashboard in a browser window (local, read-only)." },
     { "name": "sincronizar_gmail", "description": "Read bank mails for a date range directly from Gmail and register the movements." }
   ],
   "compatibility": {

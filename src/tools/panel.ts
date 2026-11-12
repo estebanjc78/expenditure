@@ -28,7 +28,7 @@ export function registerPanelTools(server: McpServer, db: DatabaseSync, options:
     "abrir_panel",
     {
       description:
-        "Abre en el navegador del usuario un PANEL visual e interactivo de sus gastos (gráficos, categorías que se expanden, comparación con el mes anterior, búsqueda). " +
+        "SOLO si el usuario pide una ventana del navegador, o si el cliente no puede mostrar el reporte dentro del chat (usa ver_panel por defecto): abre en el navegador un PANEL visual e interactivo de sus gastos (gráficos, categorías que se expanden, comparación con el mes anterior, búsqueda). " +
         "Es solo lectura y se sirve únicamente en este computador (127.0.0.1) con un token secreto en la dirección. " +
         "Úsala cuando el usuario quiera VER sus gastos, comparar meses o explorar movimientos, en vez de listar tablas en el chat. " +
         "month (YYYY-MM) es opcional: abre en ese mes. Se actualiza solo cuando llegan movimientos nuevos. " +

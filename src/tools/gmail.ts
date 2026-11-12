@@ -11,7 +11,7 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");
 function nextSteps(s: SyncSummary): string[] {
   const steps: string[] = [];
   if (s.remaining > 0) steps.push(`Quedan ${s.remaining} correos: vuelve a llamar a sincronizar_gmail con las mismas fechas.`);
-  else if (s.registered > 0) steps.push("Termina abriendo el panel con abrir_panel, sin esperar a que el usuario lo pida, para que vea de inmediato el resultado.");
+  else if (s.registered > 0) steps.push("Termina mostrando el panel con ver_panel, sin esperar a que el usuario lo pida, para que vea de inmediato el resultado.");
   if (s.uncategorizedMerchants.length > 0) {
     steps.push("Hay comercios sin categoría: clasifícalos tú con clasificar_comercios (con tu criterio, sin preguntar uno por uno) y luego muéstrale la lista al usuario.");
   }

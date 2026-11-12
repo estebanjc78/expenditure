@@ -1,4 +1,6 @@
+import { APP_CLIENT_JS } from "./app-client.generated.js";
 import { STYLES } from "./web-styles.js";
+import { APP_GLUE } from "./web-app-glue.js";
 import { SCRIPT_BASE } from "./web-script-base.js";
 import { SCRIPT_CHARTS } from "./web-script-charts.js";
 import { SCRIPT_MAIN } from "./web-script-main.js";
@@ -17,5 +19,22 @@ export function renderPage(nonce: string): string {
     `<style nonce="${nonce}">${STYLES}</style></head>`,
     '<body><div id="app" class="app"></div><div id="tip" class="tip" role="tooltip" hidden></div>',
     `<script nonce="${nonce}">${SCRIPT}</script></body></html>`,
+  ].join("");
+}
+
+/**
+ * The same dashboard as an MCP App, to be rendered by Claude inside the conversation. Everything is inline
+ * (the host sandbox allows inline scripts and styles), nothing is loaded from the internet, and data comes
+ * from the private `datos_panel` tool instead of HTTP.
+ */
+export function renderAppPage(): string {
+  return [
+    '<!doctype html><html lang="es"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<meta name="color-scheme" content="light dark">',
+    "<title>Gastos</title>",
+    `<style>${STYLES}</style></head>`,
+    '<body><div id="app" class="app"></div><div id="tip" class="tip" role="tooltip" hidden></div>',
+    `<script type="module">${APP_CLIENT_JS}\n${APP_GLUE}\n${SCRIPT}</script></body></html>`,
   ].join("");
 }

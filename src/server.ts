@@ -8,6 +8,7 @@ import type { GmailService } from "./gmail/service.js";
 import { registerBudgetTools } from "./tools/budget.js";
 import { registerFormatTools } from "./tools/formats.js";
 import { registerGmailTools } from "./tools/gmail.js";
+import { registerAppPanel } from "./tools/app-panel.js";
 import { registerPanelTools } from "./tools/panel.js";
 import type { PanelToolOptions } from "./tools/panel.js";
 import { registerSenderTools } from "./tools/senders.js";
@@ -29,5 +30,6 @@ export function createServer(db: DatabaseSync, options: ServerOptions = {}): Mcp
   registerGmailTools(server, db, gmail);
   registerFormatTools(server, db);
   registerPanelTools(server, db, options.panel);
+  registerAppPanel(server, db, { now: options.panel?.now });
   return server;
 }

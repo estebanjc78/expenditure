@@ -30,7 +30,7 @@ export function registerMovementTools(server: McpServer, db: DatabaseSync): void
       description:
         "Consulta y agrega los movimientos guardados: filtra por fechas, mes, categoría (o sin_categoria), banco, comercio, tipo, montos o texto, " +
         "y agrupa por category, bank, merchant, day o month (groupBy vacío devuelve un solo grupo 'total'). " +
-        "Por defecto suma solo gastos. Usa includeMovements:true para ver el detalle. Úsala para responder cuánto se gastó en algo. Si el usuario quiere VER, explorar o comparar sus gastos (\"¿cómo voy?\", \"mostrame\"), abre mejor el panel con abrir_panel en vez de listar tablas largas en el chat.",
+        "Por defecto suma solo gastos. Usa includeMovements:true para ver el detalle. Úsala para responder cuánto se gastó en algo. Si el usuario quiere VER, explorar o comparar sus gastos (\"¿cómo voy?\", \"mostrame\"), muestra mejor el panel con ver_panel en vez de listar tablas largas en el chat.",
       inputSchema: querySchema.shape,
     },
     (args) => run(() => queryMovements(db, args)),

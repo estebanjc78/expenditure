@@ -142,6 +142,9 @@ function loadMonth(silent) {
     document.body.classList.remove("loading");
     state.updatedAt = Date.now();
     if (r.notModified) { updateLive(); return; }
+    var sig = JSON.stringify(r.json);
+    if (silent && sig === state.sig) { updateLive(); return; }
+    state.sig = sig;
     state.data = r.json; state.etag = r.etag;
     render();
   }).catch(handleError);
@@ -163,12 +166,27 @@ function loadAll(silent) {
 function debounce(fn, ms) { var t = null; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
 (function start() {
   applyTheme(currentTheme());
-  var t = readToken();
-  state.token = t.token; state.requested = t.month;
-  if (!state.token) { showMessage("Abre el panel desde Claude", ["Este panel solo se abre con una dirección privada que genera Claude.", ["Pídele: ", h("code", { text: "abre mi panel de gastos" })]]); return; }
-  loadAll(false);
-  setInterval(function () { if (!document.hidden && state.error !== "auth") loadAll(true); }, POLL_MS);
-  setInterval(updateLive, 5000);
+  var inApp = !!window.__MCP_APP__;
+  if (inApp) {
+    state.token = "mcp-app";
+    window.__MCP_APP__.onMonth = function (m) { if (ui.built && m !== state.month) gotoMonth(m); else state.requested = m; };
+  } else {
+    var t = readToken();
+    state.token = t.token; state.requested = t.month;
+    if (!state.token) { showMessage("Abre el panel desde Claude", ["Este panel solo se abre con una dirección privada que genera Claude.", ["Pídele: ", h("code", { text: "abre mi panel de gastos" })]]); return; }
+  }
+  var begin = function () {
+    loadAll(false);
+    setInterval(function () { if (!document.hidden && state.error !== "auth") loadAll(true); }, inApp ? 60000 : POLL_MS);
+    setInterval(updateLive, 5000);
+  };
+  if (inApp) {
+    window.__MCP_APP__.ready.then(function () {
+      window.__MCP_APP__.applyHostTheme();
+      if (window.__MCP_APP__.initialMonth) state.requested = window.__MCP_APP__.initialMonth;
+      begin();
+    }, function () { showMessage("No se pudo conectar con Claude", ["Vuelve a pedirle a Claude que te muestre el panel."]); });
+  } else begin();
   window.addEventListener("resize", debounce(function () { if (state.data && ui.built) { renderHero(); renderDays(); } }, 140));
   document.addEventListener("click", function (e) { if (ui.menu && !ui.menu.hidden && !ui.menu.contains(e.target)) closeMenu(); });
   document.addEventListener("keydown", function (e) {

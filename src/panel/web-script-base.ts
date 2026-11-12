@@ -17,7 +17,7 @@ var state = {
   token: null, months: [], currentMonth: null, month: null, bank: "", data: null, etag: null,
   expanded: {}, filters: { category: null, day: null, merchant: null, kind: "all", q: "" },
   sort: { key: "date", dir: -1 }, limit: 50, view: { line: "chart", days: "chart" },
-  loading: false, error: null, animate: true, heroShown: 0, updatedAt: 0
+  loading: false, error: null, animate: true, heroShown: 0, updatedAt: 0, sig: ""
 };
 var ui = {};
 
@@ -131,7 +131,16 @@ function readToken() {
   if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
   return { token: t, month: m && /^\d{4}-(0[1-9]|1[0-2])$/.test(m) ? m : null };
 }
+function appApi(path) {
+  var url = new URL(path, "http://panel.local");
+  var args = url.pathname === "/api/month" ? { month: url.searchParams.get("month"), bank: url.searchParams.get("bank") || undefined } : {};
+  return window.__MCP_APP__.app.callServerTool({ name: "datos_panel", arguments: args }).then(function (res) {
+    if (res.isError || !res.structuredContent) throw new Error("datos_panel");
+    return { json: res.structuredContent, etag: null };
+  });
+}
 function api(path, etag) {
+  if (window.__MCP_APP__) return appApi(path);
   var headers = { "x-panel-token": state.token };
   if (etag) headers["if-none-match"] = etag;
   return fetch(path, { headers: headers, cache: "no-store" }).then(function (res) {
