@@ -33,7 +33,7 @@ All figures below are made up.
 >
 > </details>
 
-Claude reads the bank notification emails with its own Gmail connector, hands this server only the extracted data, and queries the server to answer.
+The server can read your bank notification emails itself (read-only Gmail access, one-time setup), extract the data with per-bank rules and keep only a short summary in Claude's context. That makes it practical to load months of history in one go. Without that setup, Claude can still read recent emails with its own Gmail connector and hand the server the extracted data.
 
 ## How it works
 
@@ -42,25 +42,28 @@ flowchart LR
     U[You] <--> C[Claude client]
     C <-->|"stdio (MCP tools)"| S[expenditures-control server]
     S <--> DB[(Local SQLite file)]
-    C <-->|"read-only"| G[Gmail connector]
-    G --- M[Bank notification emails]
-    S -. "never touches email" .- M
+    S <-->|"read-only, OAuth"| GA[Gmail API]
+    GA --- M[Bank notification emails]
+    S --> P[Per-bank parsers: regex, no model]
+    C -. "optional: Claude's own Gmail connector" .-> M
 ```
 
-The server has no language model and no network access of its own. Claude (the client) does the reading and interpreting; the server validates, stores and aggregates.
+The server has no language model. With Gmail connected, the server downloads the mails of your authorized senders, extracts the movements with per-bank parsers (regular expressions over the "operation details" block) and returns only a summary; Claude classifies merchants and answers questions. See [docs/diagrama-proceso-mcp.md](docs/diagrama-proceso-mcp.md) for the full flow (in Spanish).
 
 ## Privacy
 
-- The server never reads your email. Claude reads only the bank notifications it needs, through its own read-only Gmail connector.
+- Gmail access is optional and read-only (`gmail.readonly`). When connected, the server fetches only mails from the senders you authorized, and only to extract the movement data.
+- The OAuth token lives in `~/.gastos-mcp/gmail-token.json` on your computer (owner-only permissions). You can delete it any time with `desconectar_gmail` and revoke the permission at <https://myaccount.google.com/permissions>.
 - The server stores only extracted data: date, amount, merchant, bank, kind (expense, income, own transfer) and category. It never stores the text of an email.
-- Everything lives in one SQLite file on your computer. Nothing is sent anywhere by this server.
+- Everything lives in files on your computer. The only network traffic of this server is to Google's APIs (Gmail and sign-in) when you connect Gmail.
+- Merchant names, amounts and subjects that the server returns are visible to Claude like any tool result.
 - Note: when Claude reads your emails or queries the data, that content is processed by your Claude client under its own privacy terms.
 
 ## Requirements
 
 - Node.js 22.13 or newer (the server uses the built-in `node:sqlite`). Check with `node --version`.
 - An MCP client: Claude Code, Claude Desktop, or any client that runs stdio servers.
-- For email sync: Claude with a Gmail connector.
+- For email sync: either connect Gmail to the server (one-time Google setup, see [docs/gmail-setup.md](docs/gmail-setup.md)) or use Claude's own Gmail connector.
 
 ## Install
 
@@ -80,7 +83,7 @@ claude mcp add gastos -e GASTOS_DB=/path/to/gastos.db -- npx -y expenditures-con
 
 ### B. Claude Desktop (.mcpb, double-click)
 
-Not available yet. A one-click bundle can be built from the repo (`npm run build:mcpb` produces `build/expenditures-control.mcpb`), but it has not been verified that the Node runtime built into Claude Desktop includes `node:sqlite`, so it is not offered as an install path. Use C below in the meantime.
+Build the bundle from the repo (`npm run build:mcpb` produces `build/expenditures-control.mcpb`) and open it with Claude Desktop, then click **Install**. Claude Desktop's built-in Node includes `node:sqlite`, and the bundle has been used there to store movements. Downloadable releases are not published yet. If you prefer not to build it, use C below.
 
 ### C. Manual JSON config (Claude Desktop and other clients)
 
@@ -110,10 +113,11 @@ The database is one file. Default: `~/.gastos-mcp/gastos.db` (the folder is crea
 ## First use
 
 1. **Add your bank senders.** Ask Claude: "Add `BBVA@bbvanet.com.co` as a bank sender." There are none by default; the server only treats mail from these addresses as bank notifications.
-2. **Sync.** Ask: "Sync my bank emails." Claude searches Gmail (read-only) for new mail from those senders, skips ones already registered, interprets each receipt and registers it. Promotions, rejected payments and login notices are skipped. Details for Claude and contributors: [docs/sync-guide.md](docs/sync-guide.md).
-3. **Classify merchants.** For each new merchant Claude asks the category once (`supermercado`, `suscripcion`, `fijo` or `otro`) and remembers it, including for past movements.
-4. **Set budgets.** "Set a 700,000 supermercado budget for every month."
-5. **Ask.** "How did October go by category?", "What did I spend at Supermercado Ejemplo this year?", "Which fixed expenses are still unpaid?"
+2. **Connect Gmail (once).** Follow [docs/gmail-setup.md](docs/gmail-setup.md), then ask: "Connect my Gmail" and click **Allow** in the browser.
+3. **Sync.** Ask: "Sync my bank emails from 2026-09-01." The server downloads and parses the mails itself and returns a summary (registered, skipped, needs review, merchants without category). It is safe to repeat. Without the Gmail connection, Claude can read recent mails with its own connector instead; see [docs/sync-guide.md](docs/sync-guide.md).
+4. **Classify merchants.** Claude classifies new merchants itself from their names (`supermercado`, `suscripcion`, `fijo` or `otro`), shows you the list, and you correct what is wrong. Each merchant is classified once and remembered, including for past movements.
+5. **Set budgets.** "Set a 700,000 supermercado budget for every month."
+6. **Ask.** "How did October go by category?", "What did I spend at Supermercado Ejemplo this year?", "Which fixed expenses are still unpaid?"
 
 ### Fixed-expenses Excel
 
@@ -126,7 +130,7 @@ Optional. Create an `.xlsx` with the first sheet like this (headers on row 1, ca
 
 `comercio` is the keyword used to detect the payment among your movements (whole words; if empty, `nombre` is used). Then ask Claude to import it from the file path. Importing replaces the previous list.
 
-## Tools (13)
+## Tools (18)
 
 The tool names are in Spanish.
 
@@ -145,6 +149,11 @@ The tool names are in Spanish.
 | `agregar_remitente` | Add a bank sender (stored lowercase, must contain `@`). |
 | `quitar_remitente` | Remove a bank sender. |
 | `filtrar_no_registrados` | From a list of message ids (max 500), return those not registered yet. |
+| `conectar_gmail` | Connect Gmail (read-only) with a one-time Allow click. |
+| `estado_gmail` | Whether Gmail is configured, connected or waiting for you. |
+| `desconectar_gmail` | Delete the Gmail token stored on this computer. |
+| `sincronizar_gmail` | Download and parse bank mails for a date range and register the movements; returns a summary. |
+| `clasificar_comercios` | Classify many merchants at once and reclassify their expenses. |
 
 ## Troubleshooting
 
@@ -157,7 +166,10 @@ The tool names are in Spanish.
 ## Limitations
 
 - No tool to edit or delete a movement yet.
-- Receipt formats have only been validated against BBVA Colombia emails. Other banks may need new interpretation rules in the sync guide.
+- Gmail sync needs a one-time Google Cloud setup of your own (see [docs/gmail-setup.md](docs/gmail-setup.md)). It has been tested against simulated Google responses and real BBVA email formats, not yet end to end against Google's servers.
+- Parsers exist only for BBVA Colombia. Other banks need a parser in `src/parsers/` (or the manual path through Claude's Gmail connector).
+- Foreign-currency transfers are not registered automatically; they are reported for your review.
+- The server trusts the `From` address Gmail reports and relies on Gmail's own spoofing protection; it does not verify DKIM itself yet. Text taken from emails (merchant, subject) is cleaned and length-limited before it reaches the model, but treat it as data.
 - Amounts are integer COP only.
 
 Roadmap ideas for a second phase: edit and delete movements, receipt rules for more banks, more currencies.
@@ -171,7 +183,7 @@ npm install
 npm test            # unit tests
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 13 tools over stdio
+npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 18 tools over stdio
 npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
 ```
 

@@ -17,6 +17,7 @@ export function senderAddress(from: string): string {
 /** Picks the bank parser for a sender address, or null when the bank is not supported yet. */
 export function parserForSender(from: string): BankParser | null {
   const domain = senderAddress(from).split("@")[1] ?? "";
-  if (domain === "bbva.com.co" || domain.endsWith(".bbva.com.co") || domain === "bbvanet.com.co") return BBVA;
+  const bbvaDomains = ["bbva.com.co", "bbvanet.com.co", "bbva.com"];
+  if (bbvaDomains.some((d) => domain === d || domain.endsWith(`.${d}`))) return BBVA;
   return null;
 }

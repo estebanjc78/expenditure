@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { MailMessage, MailSource } from "../gmail/source.js";
+import { cleanText } from "./sanitize.js";
 import { parserForSender } from "../parsers/index.js";
 import type { ParseResult } from "../parsers/types.js";
 import { addMovements, filterUnregistered, MAX_BATCH } from "./batch.js";
@@ -10,6 +11,8 @@ export const DEFAULT_MAX_MESSAGES = 150;
 const MAX_SCAN = 2000;
 const FETCH_CONCURRENCY = 6;
 const MAX_LISTED = 20;
+const MAX_SUBJECT_CHARS = 80;
+const MAX_ERROR_CHARS = 200;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface SyncOptions {
@@ -117,7 +120,12 @@ interface Classified {
 function parseMessage(message: MailMessage): { bank: string | null; result: ParseResult } {
   const parser = parserForSender(message.from);
   if (!parser) return { bank: null, result: { status: "unrecognized" } };
-  return { bank: parser.bank, result: parser.parse({ subject: message.subject, text: message.body, receivedAt: message.receivedAt }) };
+  try {
+    return { bank: parser.bank, result: parser.parse({ subject: message.subject, text: message.body, receivedAt: message.receivedAt }) };
+  } catch {
+    // One malformed mail must never abort the whole sync: report it as unreadable instead.
+    return { bank: parser.bank, result: { status: "unrecognized" } };
+  }
 }
 
 function classify(fetched: readonly Fetched[]): Classified & { failed: { id: string; error: string }[] } {
@@ -128,11 +136,11 @@ function classify(fetched: readonly Fetched[]): Classified & { failed: { id: str
   const failed: { id: string; error: string }[] = [];
   for (const f of fetched) {
     if (!f.message) {
-      failed.push({ id: f.id, error: f.error ?? "unknown error" });
+      failed.push({ id: f.id, error: cleanText(f.error ?? "unknown error", MAX_ERROR_CHARS) });
       continue;
     }
     const { bank, result } = parseMessage(f.message);
-    const ref = { id: f.id, subject: f.message.subject };
+    const ref = { id: f.id, subject: cleanText(f.message.subject, MAX_SUBJECT_CHARS) };
     if (result.status === "movement" && bank) inputs.push({ sourceId: f.id, bank, ...result.movement });
     else if (result.status === "skip") skipped.push(ref);
     else if (result.status === "review") review.push({ ...ref, reason: result.reason });

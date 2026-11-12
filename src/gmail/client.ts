@@ -3,6 +3,9 @@ import type { MailMessage, MailSource } from "./source.js";
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const PAGE_SIZE = 500;
 const MAX_ATTEMPTS = 3;
+const MAX_BODY_CHARS = 200_000;
+const MAX_PAGES = 50;
+const REQUEST_TIMEOUT_MS = 30_000;
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 
 interface Part {
@@ -55,7 +58,10 @@ export class GmailApiSource implements MailSource {
   private async get<T>(path: string, params: Record<string, string>): Promise<T> {
     const url = `${API}${path}?${new URLSearchParams(params).toString()}`;
     for (let attempt = 1; ; attempt += 1) {
-      const res = await this.fetchFn(url, { headers: { authorization: `Bearer ${await this.getToken()}` } });
+      const res = await this.fetchFn(url, {
+        headers: { authorization: `Bearer ${await this.getToken()}` },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       if (res.ok) return (await res.json()) as T;
       if (RETRYABLE.has(res.status) && attempt < MAX_ATTEMPTS) {
         await this.sleep(500 * attempt);
@@ -69,7 +75,9 @@ export class GmailApiSource implements MailSource {
   async listMessageIds(query: string, limit: number): Promise<string[]> {
     const ids: string[] = [];
     let pageToken: string | undefined;
+    let pages = 0;
     do {
+      pages += 1;
       const page = await this.get<{ messages?: { id: string }[]; nextPageToken?: string }>("/messages", {
         q: query,
         maxResults: String(Math.min(PAGE_SIZE, limit - ids.length)),
@@ -77,7 +85,7 @@ export class GmailApiSource implements MailSource {
       });
       ids.push(...(page.messages ?? []).map((m) => m.id));
       pageToken = page.nextPageToken;
-    } while (pageToken && ids.length < limit);
+    } while (pageToken && ids.length < limit && pages < MAX_PAGES);
     return ids.slice(0, limit);
   }
 
@@ -89,7 +97,7 @@ export class GmailApiSource implements MailSource {
       subject: header(m.payload, "Subject"),
       from: header(m.payload, "From"),
       receivedAt: Number(m.internalDate ?? 0),
-      body,
+      body: body.length > MAX_BODY_CHARS ? body.slice(0, MAX_BODY_CHARS) : body,
     };
   }
 }

@@ -1,3 +1,4 @@
+import { cleanText } from "../domain/sanitize.js";
 import { parseMoney } from "./amount.js";
 import { normalizeEmailText } from "./text.js";
 import { bogotaDate } from "./types.js";
@@ -6,7 +7,11 @@ import type { ParsedMovement, ParseResult, ParserInput } from "./types.js";
 const UNRECOGNIZED: ParseResult = { status: "unrecognized" };
 const SECTION_START_RE = /Detalles? de la (?:operaci[oó]n|transferencia)/i;
 const SECTION_END_RE = /Gracias por utilizar|Hazlo f[aá]cil|Con el fin de seguir|Adem[aá]s, disfruta/i;
-const ON_THE_WAY_RE = /Debitamos los\s+(.+?)\s+de tu cuenta y los enviamos a\s+(.+?)\.\s*Conoce/i;
+const ON_THE_WAY_START = "Debitamos los";
+const ON_THE_WAY_MID = " de tu cuenta y los enviamos a ";
+const ON_THE_WAY_END = ". Conoce";
+const MAX_MERCHANT_CHARS = 80;
+const CURRENCY_CODE_RE = /^[A-Z]{3}(?: A [A-Z]{3})?$/;
 
 const PURCHASE_LABELS = ["Tarjeta terminada en", "Fecha de la operación", "Establecimiento", "Valor", "Hora"];
 const RECEIVED_LABELS = ["Fecha y hora", "Valor recibido", "Persona que envía", "Tipo de llave", "Cuenta destino", "Código de operación"];
@@ -61,7 +66,8 @@ function copAmount(text: string | undefined): number | null {
   return amount > 0 ? amount : null;
 }
 
-function movement(date: string | null, amount: number | null, merchant: string | undefined, kind: ParsedMovement["kind"]): ParseResult {
+function movement(date: string | null, amount: number | null, rawMerchant: string | undefined, kind: ParsedMovement["kind"]): ParseResult {
+  const merchant = cleanText(rawMerchant ?? "", MAX_MERCHANT_CHARS);
   if (!date || amount === null || !merchant) return UNRECOGNIZED;
   return { status: "movement", movement: { date, amount, merchant, kind } };
 }
@@ -81,16 +87,25 @@ function parseOwnTransfer(section: string): ParseResult {
   const currency = f.get("divisa") ?? "";
   const money = parseMoney(f.get("valor") ?? "");
   if ((currency && currency.toUpperCase() !== "COP") || (money && money.currency !== "COP")) {
-    return { status: "review", reason: `Transferencia en divisa extranjera (${currency || money?.currency}): no se registra sin confirmar con el usuario` };
+    const code = (currency || money?.currency || "").toUpperCase();
+    return { status: "review", reason: `Transferencia en divisa extranjera (${CURRENCY_CODE_RE.test(code) ? code : "desconocida"}): no se registra sin confirmar con el usuario` };
   }
   if (!/propia/i.test(f.get("tipo de transferencia") ?? "")) return UNRECOGNIZED;
   return movement(isoDate(f.get("fecha")), copAmount(f.get("valor")), "Transferencia propia", "transferencia_propia");
 }
 
+/** "Debitamos los $X de tu cuenta y los enviamos a NAME. Conoce ...", found with plain indexOf scans (linear). */
 function parseOnTheWay(text: string, receivedAt: number): ParseResult | null {
-  const m = ON_THE_WAY_RE.exec(text);
-  if (!m) return null;
-  return movement(bogotaDate(receivedAt), copAmount(m[1]), m[2]?.trim(), "gasto");
+  const start = text.indexOf(ON_THE_WAY_START);
+  if (start < 0) return null;
+  const mid = text.indexOf(ON_THE_WAY_MID, start);
+  if (mid < 0) return null;
+  const end = text.indexOf(ON_THE_WAY_END, mid);
+  if (end < 0) return null;
+  const amount = text.slice(start + ON_THE_WAY_START.length, mid).trim();
+  const merchant = text.slice(mid + ON_THE_WAY_MID.length, end).trim();
+  if (amount.length > 40 || merchant.length > 200) return UNRECOGNIZED;
+  return movement(bogotaDate(receivedAt), copAmount(amount), merchant, "gasto");
 }
 
 /** Parser for BBVA Colombia transaction notices (purchase, received money, transfers). */

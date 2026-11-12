@@ -2,6 +2,8 @@
 
 Spanish version: [sync-guide.es.md](sync-guide.es.md)
 
+> **Two ways to sync.** The recommended way is `sincronizar_gmail` (see [gmail-setup.md](gmail-setup.md)): the server downloads and parses the mails itself with the rules in `src/parsers/bbva.ts` and returns a summary, so you do not need to read any email. The rest of this guide describes the manual path, where Claude reads each mail with its own Gmail connector and registers the movements with `registrar_movimientos`. It is also the reference for the receipt formats the parser handles.
+
 How Claude should read bank receipts from Gmail (read-only) and register them with this MCP server. Based on real BBVA receipts seen on 2026-11-11 and on an end-to-end test with a real mailbox. **Anything not seen yet is marked as not validated.** Tool names are in Spanish; that is the server's API.
 
 ## 1. Finding receipts

@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { request as httpRequest } from "node:http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { beginAuthorization, getAccessToken, loadClientConfig, TokenStore } from "../src/gmail/oauth.js";
 
@@ -73,17 +74,41 @@ describe("gmail oauth", () => {
       expect(statSync(join(dir, "gmail-token.json")).mode & 0o777).toBe(0o600);
     });
 
-    it("rejects a callback with the wrong state and stores nothing", async () => {
-      const { fetchFn } = fakeGoogle([]);
+    it("ignores a forged callback (wrong state) and keeps waiting for the real one", async () => {
+      const { fetchFn } = fakeGoogle([{ json: { access_token: "at", refresh_token: "rt", expires_in: 3600 } }]);
       const { url, completion } = await beginAuthorization(CONFIG, store, { fetchFn });
-      const redirect = new URL(new URL(url).searchParams.get("redirect_uri")!);
-      redirect.searchParams.set("code", "x");
-      redirect.searchParams.set("state", "forged");
-      const caught = completion.catch((e: Error) => e);
-      const res = await fetch(redirect);
-      expect(res.status).toBe(400);
-      expect(((await caught) as Error).message).toMatch(/state/i);
+      const auth = new URL(url);
+      const redirect = new URL(auth.searchParams.get("redirect_uri")!);
+
+      const forged = new URL(redirect);
+      forged.searchParams.set("code", "x");
+      forged.searchParams.set("state", "forged");
+      expect((await fetch(forged)).status).toBe(400);
       expect(store.read()).toBeNull();
+
+      const real = new URL(redirect);
+      real.searchParams.set("code", "auth-code");
+      real.searchParams.set("state", auth.searchParams.get("state")!);
+      expect((await fetch(real)).status).toBe(200);
+      await completion;
+      expect(store.read()).toMatchObject({ refreshToken: "rt" });
+    });
+
+    it("rejects requests whose Host header is not the loopback address", async () => {
+      const { fetchFn } = fakeGoogle([]);
+      const { url, completion } = await beginAuthorization(CONFIG, store, { fetchFn, timeoutMs: 100 });
+      const auth = new URL(url);
+      const redirect = new URL(auth.searchParams.get("redirect_uri")!);
+      const status = await new Promise<number>((resolve, reject) => {
+        const req = httpRequest(
+          { host: "127.0.0.1", port: redirect.port, path: `/?code=x&state=${auth.searchParams.get("state")}`, headers: { host: "evil.example" } },
+          (res) => resolve(res.statusCode ?? 0),
+        );
+        req.on("error", reject);
+        req.end();
+      });
+      expect(status).toBe(400);
+      await expect(completion).rejects.toThrow(/tiempo/i);
     });
 
     it("fails when the user denies access", async () => {
@@ -133,5 +158,33 @@ describe("gmail oauth", () => {
       expect(store.read()).toBeNull();
       expect(existsSync(join(dir, "gmail-token.json"))).toBe(false);
     });
+  });
+  describe("TokenStore", () => {
+    it("treats a corrupt token file as not connected", () => {
+      writeFileSync(join(dir, "gmail-token.json"), "{ not json");
+      expect(store.read()).toBeNull();
+      writeFileSync(join(dir, "gmail-token.json"), JSON.stringify({ accessToken: "x" }));
+      expect(store.read()).toBeNull();
+    });
+
+    it("writes atomically and leaves no temp files behind", () => {
+      store.write({ refreshToken: "rt" });
+      store.write({ refreshToken: "rt2" });
+      expect(store.read()).toEqual({ refreshToken: "rt2" });
+      expect(readdirSync(dir)).toEqual(["gmail-token.json"]);
+    });
+  });
+
+  it("shares one refresh between concurrent requests", async () => {
+    store.write({ refreshToken: "rt", accessToken: "old", expiresAt: 0 });
+    const { fetchFn, calls } = fakeGoogle([{ json: { access_token: "new", expires_in: 3600 } }]);
+    const tokens = await Promise.all(Array.from({ length: 6 }, () => getAccessToken(CONFIG, store, { fetchFn, now: () => 1_000 })));
+    expect(tokens).toEqual(Array(6).fill("new"));
+    expect(calls).toHaveLength(1);
+  });
+
+  it("reports an invalid google-client.json clearly", () => {
+    writeFileSync(join(dir, "google-client.json"), "nope");
+    expect(() => loadClientConfig(dir, {})).toThrow(/google-client\.json/);
   });
 });

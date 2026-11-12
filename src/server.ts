@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { createGmailService } from "./gmail/service.js";
@@ -15,7 +16,7 @@ export interface ServerOptions {
 }
 
 export function createServer(db: DatabaseSync, options: ServerOptions = {}): McpServer {
-  const gmail = options.gmail ?? createGmailService({ dataDir: join(tmpdir(), "gastos-mcp-no-gmail"), env: {} });
+  const gmail = options.gmail ?? createGmailService({ dataDir: join(tmpdir(), `gastos-mcp-no-gmail-${randomUUID()}`), env: {} });
   const server = new McpServer({ name: "gastos", version: "0.1.0" });
   registerMovementTools(server, db);
   registerBudgetTools(server, db);

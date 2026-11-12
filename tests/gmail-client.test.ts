@@ -104,3 +104,20 @@ describe("GmailApiSource errors", () => {
     expect(calls).toBe(1);
   });
 });
+
+describe("GmailApiSource limits", () => {
+  it("truncates oversized bodies", async () => {
+    const big = "x".repeat(300_000);
+    const { fetchFn } = fakeFetch(() => ({
+      json: { id: "big", internalDate: "1", payload: { mimeType: "text/plain", headers: [], body: { data: Buffer.from(big).toString("base64url") } } },
+    }));
+    expect((await source(fetchFn).getMessage("big")).body).toHaveLength(200_000);
+  });
+
+  it("stops paginating after a page cap even if Gmail keeps returning tokens", async () => {
+    let calls = 0;
+    const { fetchFn } = fakeFetch(() => (calls++, { json: { messages: [], nextPageToken: "again" } }));
+    expect(await source(fetchFn).listMessageIds("q", 100)).toEqual([]);
+    expect(calls).toBe(50);
+  });
+});

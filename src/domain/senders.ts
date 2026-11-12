@@ -5,10 +5,16 @@ export interface Sender {
   readonly label: string | null;
 }
 
+// Strict shape: the address is pasted into a Gmail search query, so it must not carry operators or parentheses.
+const SENDER_RE = /^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+
 function normalizeAddress(address: string): string {
   const a = address.trim().toLowerCase();
   if (!a.includes("@")) {
     throw new Error(`Invalid sender address "${address.trim()}": it must contain @`);
+  }
+  if (!SENDER_RE.test(a)) {
+    throw new Error(`Invalid sender address "${address.trim().slice(0, 60)}": use only letters, digits and . _ % + - around a single @`);
   }
   return a;
 }

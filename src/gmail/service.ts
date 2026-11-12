@@ -30,6 +30,8 @@ export interface GmailServiceOptions {
   readonly fetchFn?: typeof fetch;
   /** Opens a URL in the user's browser; returns whether it could. */
   readonly openUrl?: (url: string) => Promise<boolean>;
+  /** How long to wait for the user to click Allow (tests shorten it). */
+  readonly oauthTimeoutMs?: number;
 }
 
 export function openInBrowser(url: string): Promise<boolean> {
@@ -44,7 +46,7 @@ export function createGmailService(options: GmailServiceOptions): GmailService {
   const env = options.env ?? process.env;
   const store = new TokenStore(join(options.dataDir, "gmail-token.json"));
   const open = options.openUrl ?? openInBrowser;
-  let waiting: { url: string } | null = null;
+  let pending: Promise<{ url: string }> | null = null;
   let lastError: string | null = null;
 
   const config = (): GoogleClientConfig | null => loadClientConfig(options.dataDir, env);
@@ -55,21 +57,28 @@ export function createGmailService(options: GmailServiceOptions): GmailService {
   };
 
   return {
-    status: () => ({ configured: config() !== null, connected: store.read() !== null, waitingForUser: waiting !== null, lastError }),
+    status: () => ({ configured: config() !== null, connected: store.read() !== null, waitingForUser: pending !== null, lastError }),
 
     async connect() {
       const cfg = requireConfig();
-      if (waiting) return { url: waiting.url, opened: false };
+      if (pending) return { url: (await pending).url, opened: false };
       lastError = null;
-      const { url, completion } = await beginAuthorization(cfg, store, { fetchFn: options.fetchFn });
-      waiting = { url };
-      completion
-        .catch((err: unknown) => {
-          lastError = err instanceof Error ? err.message : String(err);
-        })
-        .finally(() => {
-          waiting = null;
-        });
+      // `pending` is set synchronously, so two quick calls cannot open two listeners.
+      const started = beginAuthorization(cfg, store, { fetchFn: options.fetchFn, timeoutMs: options.oauthTimeoutMs }).then(({ url, completion }) => {
+        completion
+          .catch((err: unknown) => {
+            lastError = err instanceof Error ? err.message : String(err);
+          })
+          .finally(() => {
+            pending = null;
+          });
+        return { url };
+      });
+      pending = started;
+      started.catch(() => {
+        pending = null;
+      });
+      const { url } = await started;
       return { url, opened: await open(url) };
     },
 

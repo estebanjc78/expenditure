@@ -2,6 +2,8 @@
 
 English version: [sync-guide.md](sync-guide.md)
 
+> **Dos formas de sincronizar.** La recomendada es `sincronizar_gmail` (ver [gmail-setup.es.md](gmail-setup.es.md)): el servidor descarga y procesa los correos por sí mismo con las reglas de `src/parsers/bbva.ts` y devuelve un resumen, así que no hace falta leer ningún correo. El resto de esta guía describe la vía manual, en la que Claude lee cada correo con su propio conector de Gmail y registra los movimientos con `registrar_movimientos`. También sirve de referencia de los formatos de comprobante que maneja el parser.
+
 Cómo debe Claude leer los comprobantes de Gmail (solo lectura) y registrarlos con el MCP. Basada en comprobantes reales de BBVA vistos el 2026-11-11. **Lo que no se vio todavía está marcado como no validado.**
 
 ## 1. Buscar comprobantes

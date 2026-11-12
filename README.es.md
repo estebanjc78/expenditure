@@ -33,7 +33,7 @@ Todas las cifras son inventadas.
 >
 > </details>
 
-Claude lee los correos de notificación del banco con su propio conector de Gmail, entrega a este servidor solo los datos extraídos y le consulta para responder.
+El servidor puede leer por sí mismo tus correos de notificación del banco (acceso de solo lectura a Gmail, con una configuración única), extraer los datos con reglas por banco y dejar en el contexto de Claude solo un resumen corto. Así es práctico cargar meses de historial de una vez. Sin esa configuración, Claude igual puede leer los correos recientes con su propio conector de Gmail y entregarle al servidor los datos extraídos.
 
 ## Cómo funciona
 
@@ -42,25 +42,28 @@ flowchart LR
     U[Tú] <--> C[Cliente Claude]
     C <-->|"stdio (herramientas MCP)"| S[Servidor expenditures-control]
     S <--> DB[(Archivo SQLite local)]
-    C <-->|"solo lectura"| G[Conector de Gmail]
-    G --- M[Correos del banco]
-    S -. "nunca toca el correo" .- M
+    S <-->|"solo lectura, OAuth"| GA[API de Gmail]
+    GA --- M[Correos del banco]
+    S --> P[Parsers por banco: regex, sin modelo]
+    C -. "opcional: conector de Gmail de Claude" .-> M
 ```
 
-El servidor no tiene modelo de lenguaje ni acceso a la red por su cuenta. Claude (el cliente) lee e interpreta; el servidor valida, guarda y agrega.
+El servidor no tiene modelo de lenguaje. Con Gmail conectado, el servidor descarga los correos de tus remitentes autorizados, extrae los movimientos con parsers por banco (expresiones regulares sobre el bloque "Detalles de la operación") y devuelve solo un resumen; Claude clasifica comercios y responde preguntas. El flujo completo está en [docs/diagrama-proceso-mcp.md](docs/diagrama-proceso-mcp.md).
 
 ## Privacidad
 
-- El servidor nunca lee tu correo. Claude lee solo las notificaciones bancarias necesarias, con su conector de Gmail de solo lectura.
+- El acceso a Gmail es opcional y de solo lectura (`gmail.readonly`). Una vez conectado, el servidor descarga únicamente los correos de los remitentes que autorizaste, solo para extraer los datos del movimiento.
+- El token de OAuth vive en `~/.gastos-mcp/gmail-token.json` en tu computador (permisos solo para tu usuario). Puedes borrarlo cuando quieras con `desconectar_gmail` y revocar el permiso en <https://myaccount.google.com/permissions>.
 - Solo se guardan datos extraídos: fecha, monto, comercio, banco, tipo (gasto, ingreso, transferencia propia) y categoría. Nunca el texto de un correo.
-- Todo vive en un archivo SQLite en tu computador. Este servidor no envía nada a ninguna parte.
+- Todo vive en archivos en tu computador. El único tráfico de red de este servidor es hacia las APIs de Google (Gmail e inicio de sesión) cuando conectas Gmail.
+- Los nombres de comercios, montos y asuntos que devuelve el servidor los ve Claude, como cualquier resultado de una herramienta.
 - Ojo: cuando Claude lee tus correos o consulta los datos, ese contenido lo procesa tu cliente de Claude bajo sus propios términos de privacidad.
 
 ## Requisitos
 
 - Node.js 22.13 o superior (el servidor usa `node:sqlite`, incluido en Node). Verifica con `node --version`.
 - Un cliente MCP: Claude Code, Claude Desktop u otro que ejecute servidores stdio.
-- Para sincronizar correo: Claude con un conector de Gmail.
+- Para sincronizar correo: conectar Gmail al servidor (configuración única en Google, ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)) o usar el conector de Gmail de Claude.
 
 ## Instalación
 
@@ -80,7 +83,7 @@ claude mcp add gastos -e GASTOS_DB=/ruta/gastos.db -- npx -y expenditures-contro
 
 ### B. Claude Desktop (.mcpb, doble clic)
 
-Aún no disponible. Desde el repositorio se puede construir un paquete de un clic (`npm run build:mcpb` genera `build/expenditures-control.mcpb`), pero no se ha verificado que el Node integrado en Claude Desktop incluya `node:sqlite`, así que no se ofrece como vía de instalación. Mientras tanto usa la opción C.
+Construye el paquete desde el repositorio (`npm run build:mcpb` genera `build/expenditures-control.mcpb`), ábrelo con Claude Desktop y pulsa **Install**. El Node integrado en Claude Desktop incluye `node:sqlite` y el paquete se ha usado ahí para guardar movimientos. Todavía no hay descargas publicadas. Si prefieres no construirlo, usa la opción C.
 
 ### C. Configuración manual en JSON (Claude Desktop y otros clientes)
 
@@ -110,10 +113,11 @@ La base de datos es un solo archivo. Por defecto: `~/.gastos-mcp/gastos.db` (la 
 ## Primer uso
 
 1. **Agrega tus remitentes bancarios.** Pídele a Claude: "Agrega `BBVA@bbvanet.com.co` como remitente bancario." No hay ninguno por defecto; el servidor solo trata como notificación bancaria el correo de estas direcciones.
-2. **Sincroniza.** Pide: "Sincroniza mis correos del banco." Claude busca en Gmail (solo lectura) correo nuevo de esos remitentes, omite lo ya registrado, interpreta cada comprobante y lo registra. Se omiten promociones, pagos rechazados y avisos de ingreso. Detalle para Claude y colaboradores: [docs/sync-guide.es.md](docs/sync-guide.es.md).
-3. **Clasifica comercios.** Por cada comercio nuevo Claude pregunta la categoría una vez (`supermercado`, `suscripcion`, `fijo` u `otro`) y la recuerda, también para movimientos pasados.
-4. **Define presupuestos.** "Fija un presupuesto de 700.000 para supermercado en todos los meses."
-5. **Pregunta.** "¿Cómo me fue en octubre por categoría?", "¿Cuánto gasté en Supermercado Ejemplo este año?", "¿Qué gastos fijos faltan por pagar?"
+2. **Conecta Gmail (una vez).** Sigue [docs/gmail-setup.es.md](docs/gmail-setup.es.md) y luego pide: "Conecta mi Gmail" y pulsa **Permitir** en el navegador.
+3. **Sincroniza.** Pide: "Sincroniza mis correos del banco desde 2026-09-01." El servidor descarga y procesa los correos por sí mismo y devuelve un resumen (registrados, omitidos, para revisar, comercios sin categoría). Se puede repetir sin riesgo. Sin la conexión de Gmail, Claude puede leer los correos recientes con su propio conector; ver [docs/sync-guide.es.md](docs/sync-guide.es.md).
+4. **Clasifica comercios.** Claude clasifica los comercios nuevos por su nombre (`supermercado`, `suscripcion`, `fijo` u `otro`), te muestra la lista y tú corriges lo que esté mal. Cada comercio se clasifica una vez y se recuerda, también para movimientos pasados.
+5. **Define presupuestos.** "Fija un presupuesto de 700.000 para supermercado en todos los meses."
+6. **Pregunta.** "¿Cómo me fue en octubre por categoría?", "¿Cuánto gasté en Supermercado Ejemplo este año?", "¿Qué gastos fijos faltan por pagar?"
 
 ### Excel de gastos fijos
 
@@ -126,7 +130,7 @@ Opcional. Crea un `.xlsx` con la primera hoja así (encabezados en la fila 1, si
 
 `comercio` es la palabra clave para detectar el pago entre tus movimientos (palabras completas; si está vacío se usa `nombre`). Luego pídele a Claude que lo importe desde la ruta del archivo. Importar reemplaza la lista anterior.
 
-## Herramientas (13)
+## Herramientas (18)
 
 Los nombres de las herramientas están en español.
 
@@ -145,6 +149,11 @@ Los nombres de las herramientas están en español.
 | `agregar_remitente` | Agrega un remitente (se guarda en minúsculas; debe contener `@`). |
 | `quitar_remitente` | Quita un remitente. |
 | `filtrar_no_registrados` | De una lista de ids de mensajes (máx. 500) devuelve los aún no registrados. |
+| `conectar_gmail` | Conecta Gmail (solo lectura) con un clic de Permitir, una sola vez. |
+| `estado_gmail` | Si Gmail está configurado, conectado o esperando tu autorización. |
+| `desconectar_gmail` | Borra el token de Gmail guardado en este computador. |
+| `sincronizar_gmail` | Descarga y procesa los correos del banco de un rango de fechas y registra los movimientos; devuelve un resumen. |
+| `clasificar_comercios` | Clasifica varios comercios de una vez y reclasifica sus gastos. |
 
 ## Solución de problemas
 
@@ -157,7 +166,10 @@ Los nombres de las herramientas están en español.
 ## Limitaciones
 
 - Todavía no hay herramienta para editar o borrar un movimiento.
-- Los formatos de comprobante solo se han validado con correos de BBVA Colombia. Otros bancos pueden requerir nuevas reglas de interpretación en la guía de sincronización.
+- La sincronización con Gmail requiere una configuración única en Google Cloud, hecha por ti (ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)). Se probó con respuestas de Google simuladas y con formatos reales de correos de BBVA, pero todavía no de punta a punta contra los servidores de Google.
+- Solo hay parsers para BBVA Colombia. Otros bancos necesitan un parser en `src/parsers/` (o la vía manual con el conector de Gmail de Claude).
+- Las transferencias en moneda extranjera no se registran solas; se reportan para tu revisión.
+- El servidor confía en la dirección `From` que reporta Gmail y se apoya en la protección anti-suplantación de Gmail; todavía no verifica DKIM por su cuenta. El texto tomado de los correos (comercio, asunto) se limpia y se acota antes de llegar al modelo, pero trátalo como datos.
 - Los montos son solo COP enteros.
 
 Ideas para una segunda fase: editar y borrar movimientos, reglas de comprobantes para más bancos, más monedas.
@@ -171,7 +183,7 @@ npm install
 npm test            # pruebas unitarias
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 13 herramientas por stdio
+npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 18 herramientas por stdio
 npm run build:mcpb  # opcional: genera build/expenditures-control.mcpb
 ```
 
