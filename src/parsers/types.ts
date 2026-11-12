@@ -1,4 +1,4 @@
-import type { Kind } from "../domain/types.js";
+import type { Category, Kind } from "../domain/types.js";
 
 export interface ParserInput {
   readonly subject: string;
@@ -13,6 +13,8 @@ export interface ParsedMovement {
   readonly amount: number; // COP, integer
   readonly merchant: string;
   readonly kind: Kind;
+  /** Category to use when the user has no rule for this merchant. */
+  readonly suggestedCategory?: Category;
 }
 
 export type ParseResult =

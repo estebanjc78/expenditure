@@ -44,10 +44,10 @@ function copAmount(text: string | undefined): number | null {
   return amount > 0 ? amount : null;
 }
 
-function movement(date: string | null, amount: number | null, rawMerchant: string | undefined, kind: ParsedMovement["kind"]): ParseResult {
+function movement(date: string | null, amount: number | null, rawMerchant: string | undefined, kind: ParsedMovement["kind"], suggestedCategory?: ParsedMovement["suggestedCategory"]): ParseResult {
   const merchant = cleanText(rawMerchant ?? "", MAX_MERCHANT_CHARS);
   if (!date || amount === null || !merchant) return UNRECOGNIZED;
-  return { status: "movement", movement: { date, amount, merchant, kind } };
+  return { status: "movement", movement: { date, amount, merchant, kind, ...(suggestedCategory ? { suggestedCategory } : {}) } };
 }
 
 function parsePurchase(section: string): ParseResult {
@@ -83,7 +83,7 @@ function parseOnTheWay(text: string, receivedAt: number): ParseResult | null {
   const amount = text.slice(start + ON_THE_WAY_START.length, mid).trim();
   const merchant = text.slice(mid + ON_THE_WAY_MID.length, end).trim();
   if (amount.length > 40 || merchant.length > 200) return UNRECOGNIZED;
-  return movement(bogotaDate(receivedAt), copAmount(amount), merchant, "gasto");
+  return movement(bogotaDate(receivedAt), copAmount(amount), merchant, "gasto", "transferencia");
 }
 
 /**

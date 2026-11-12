@@ -123,7 +123,7 @@ La base de datos es un solo archivo. Por defecto: `~/.gastos-mcp/gastos.db` (la 
 1. **Agrega tus remitentes bancarios.** Pídele a Claude: "Agrega `BBVA@bbvanet.com.co` como remitente bancario." No hay ninguno por defecto; el servidor solo trata como notificación bancaria el correo de estas direcciones.
 2. **Conecta Gmail (una vez).** Pide: "Conecta mi Gmail", elige tu cuenta en el navegador y pulsa **Permitir** (Google muestra primero un aviso de "app no verificada"; ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)).
 3. **Sincroniza.** Pide: "Sincroniza mis correos del banco desde 2026-09-01." El servidor descarga y procesa los correos por sí mismo y devuelve un resumen (registrados, omitidos, para revisar, comercios sin categoría). Se puede repetir sin riesgo. Sin la conexión de Gmail, Claude puede leer los correos recientes con su propio conector; ver [docs/sync-guide.es.md](docs/sync-guide.es.md).
-4. **Clasifica comercios.** Claude clasifica los comercios nuevos por su nombre (`supermercado`, `suscripcion`, `fijo` u `otro`), te muestra la lista y tú corriges lo que esté mal. Cada comercio se clasifica una vez y se recuerda, también para movimientos pasados.
+4. **Clasifica comercios.** Claude clasifica los comercios nuevos por su nombre (`supermercado`, `suscripcion`, `fijo`, `otro`, `pse` o `transferencia`), te muestra la lista y tú corriges lo que esté mal. Cada comercio se clasifica una vez y se recuerda, también para movimientos pasados.
 5. **Define presupuestos.** "Fija un presupuesto de 700.000 para supermercado en todos los meses."
 6. **Pregunta.** "¿Cómo me fue en octubre por categoría?", "¿Cuánto gasté en Supermercado Ejemplo este año?", "¿Qué gastos fijos faltan por pagar?"
 

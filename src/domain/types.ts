@@ -1,5 +1,5 @@
-/** The single list of spending categories. `pse` collects PSE payments, whose payee the bank notice hides. */
-export const CATEGORIES = ["supermercado", "suscripcion", "fijo", "otro", "pse"] as const;
+/** The single list of spending categories. `pse` collects PSE payments (the payee is hidden); `transferencia` collects transfers to other people. */
+export const CATEGORIES = ["supermercado", "suscripcion", "fijo", "otro", "pse", "transferencia"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export type Kind = "gasto" | "ingreso" | "transferencia_propia";
 
@@ -22,4 +22,6 @@ export interface MovementInput {
   readonly bank: string;
   readonly kind: Kind;
   readonly category?: Category;
+  /** Used only when neither the caller nor a merchant rule decides a category (e.g. a parser knows it is a transfer). */
+  readonly suggestedCategory?: Category;
 }

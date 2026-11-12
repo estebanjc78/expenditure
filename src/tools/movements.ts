@@ -18,7 +18,7 @@ export function registerMovementTools(server: McpServer, db: DatabaseSync): void
         "Pasa category SOLO si el usuario la dijo explícitamente; si no, omítela y deja que decida la regla del comercio " +
         "(si no hay regla, la respuesta trae needsClassification:true, que aplica solo a gastos). " +
         "Si la respuesta trae needsClassification:true, pregunta al usuario a qué categoría pertenece el comercio " +
-        "(supermercado, suscripcion, fijo, otro o pse) y llama a clasificar_comercio. Los pagos PSE (comercio \"PSE · …\") reciben solos la categoría pse.",
+        "(supermercado, suscripcion, fijo, otro, pse o transferencia) y llama a clasificar_comercio. Los pagos PSE (comercio \"PSE · …\") reciben solos la categoría pse.",
       inputSchema: movementInputSchema.shape,
     },
     (args) => run(() => addMovement(db, args)),

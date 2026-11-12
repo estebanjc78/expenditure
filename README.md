@@ -121,7 +121,7 @@ The database is one file. Default: `~/.gastos-mcp/gastos.db` (the folder is crea
 1. **Add your bank senders.** Ask Claude: "Add `BBVA@bbvanet.com.co` as a bank sender." There are none by default; the server only treats mail from these addresses as bank notifications.
 2. **Connect Gmail (once).** Ask: "Connect my Gmail", then in the browser choose your account and click **Allow** (Google shows an "unverified app" notice first; see [docs/gmail-setup.md](docs/gmail-setup.md)).
 3. **Sync.** Ask: "Sync my bank emails from 2026-09-01." The server downloads and parses the mails itself and returns a summary (registered, skipped, needs review, merchants without category). It is safe to repeat. Without the Gmail connection, Claude can read recent mails with its own connector instead; see [docs/sync-guide.md](docs/sync-guide.md).
-4. **Classify merchants.** Claude classifies new merchants itself from their names (`supermercado`, `suscripcion`, `fijo` or `otro`), shows you the list, and you correct what is wrong. Each merchant is classified once and remembered, including for past movements.
+4. **Classify merchants.** Claude classifies new merchants itself from their names (`supermercado`, `suscripcion`, `fijo`, `otro`, `pse` or `transferencia`), shows you the list, and you correct what is wrong. Each merchant is classified once and remembered, including for past movements.
 5. **Set budgets.** "Set a 700,000 supermercado budget for every month."
 6. **Ask.** "How did October go by category?", "What did I spend at Supermercado Ejemplo this year?", "Which fixed expenses are still unpaid?"
 

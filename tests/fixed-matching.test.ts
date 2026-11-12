@@ -115,3 +115,17 @@ describe("PSE category", () => {
     expect(db.prepare("SELECT category FROM movements WHERE source_id = 'x2'").get()).toEqual({ category: "fijo" });
   });
 });
+
+describe("transferencia category", () => {
+  it("is suggested for transfers to people, but a merchant rule or an explicit category wins", async () => {
+    const { setMerchantRule } = await import("../src/domain/classify.js");
+    const db = openDb(":memory:");
+    const add = (id: string, merchant: string, extra: object = {}) => addMovement(db, { sourceId: id, date: "2026-10-07", amount: 1000, merchant, bank: "bbva", kind: "gasto", suggestedCategory: "transferencia", ...extra });
+    expect(add("t1", "Persona Destino").needsClassification).toBe(false);
+    setMerchantRule(db, "Propietario Ejemplo", "fijo");
+    add("t2", "Propietario Ejemplo");
+    add("t3", "Otra Persona", { category: "otro" });
+    const rows = db.prepare("SELECT source_id, category FROM movements ORDER BY source_id").all();
+    expect(rows).toEqual([{ source_id: "t1", category: "transferencia" }, { source_id: "t2", category: "fijo" }, { source_id: "t3", category: "otro" }]);
+  });
+});

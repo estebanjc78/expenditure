@@ -142,7 +142,7 @@ describe("parseBbva", () => {
     const r = parseBbva({ subject: "Tu transferencia va en camino", text: onTheWayText, receivedAt: LATE_NIGHT });
     expect(r).toEqual({
       status: "movement",
-      movement: { date: "2026-11-10", amount: 500000, merchant: "Persona Destino", kind: "gasto" },
+      movement: { date: "2026-11-10", amount: 500000, merchant: "Persona Destino", kind: "gasto", suggestedCategory: "transferencia" },
     });
   });
 

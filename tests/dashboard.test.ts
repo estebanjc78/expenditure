@@ -62,7 +62,7 @@ describe("dashboardData", () => {
     expect(sup).toMatchObject({ spent: 200_000, prevSpent: 100_000, count: 1, budget: 250_000, percent: 80, alert: true });
     const sin = d.categories.find((c) => c.category === "sin_categoria")!;
     expect(sin).toMatchObject({ spent: 30_000, count: 1, budget: null });
-    expect(d.categories.map((c) => c.category)).toEqual(["supermercado", "suscripcion", "fijo", "otro", "pse", "sin_categoria"]);
+    expect(d.categories.map((c) => c.category)).toEqual(["supermercado", "suscripcion", "fijo", "otro", "pse", "transferencia", "sin_categoria"]);
   });
 
   it("returns daily spending for the month and the previous month by day of month", () => {
@@ -98,7 +98,7 @@ describe("dashboardData", () => {
     expect(d.totals).toMatchObject({ spent: 0, income: 0, uncategorized: { amount: 0, count: 0 } });
     expect(d.daily).toEqual([]);
     expect(d.topMerchants).toEqual([]);
-    expect(d.categories).toHaveLength(6);
+    expect(d.categories).toHaveLength(7);
   });
 
   it("caps the movement list and says so", () => {

@@ -26,6 +26,7 @@ export const movementInputSchema = z.object({
   bank: z.string().min(1, "bank is required"),
   kind: z.enum(["gasto", "ingreso", "transferencia_propia"]),
   category: z.enum(CATEGORIES).optional(),
+  suggestedCategory: z.enum(CATEGORIES).optional(),
 });
 
 function parseInput(input: MovementInput): MovementInput {
@@ -45,7 +46,7 @@ export function addMovement(
 ): { id: number; duplicate: boolean; needsClassification: boolean } {
   const m = parseInput(input);
   // Only gastos are classified; ingreso/transferencia_propia keep an explicit category or null.
-  const category = m.category ?? (m.kind === "gasto" ? lookupCategory(db, m.merchant) : null);
+  const category = m.category ?? (m.kind === "gasto" ? lookupCategory(db, m.merchant) ?? m.suggestedCategory ?? null : null);
   const res = db
     .prepare(
       `INSERT INTO movements (source_id, date, amount, merchant, bank, kind, category)
