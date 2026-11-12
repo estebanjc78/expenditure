@@ -36,6 +36,7 @@
     { "name": "conectar_gmail", "description": "Connect Gmail (read-only) with a one-time Allow click." },
     { "name": "estado_gmail", "description": "Show whether Gmail is configured and connected." },
     { "name": "desconectar_gmail", "description": "Delete the Gmail token stored on this computer." },
+    { "name": "abrir_panel", "description": "Open an interactive spending dashboard in your browser (local, read-only)." },
     { "name": "sincronizar_gmail", "description": "Read bank mails for a date range directly from Gmail and register the movements." }
   ],
   "compatibility": {

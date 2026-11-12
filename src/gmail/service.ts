@@ -1,5 +1,5 @@
-import { execFile } from "node:child_process";
 import { join } from "node:path";
+import { openInBrowser } from "../open-browser.js";
 import { BUNDLED_CLIENT } from "./bundled-client.js";
 import { GmailApiSource } from "./client.js";
 import { beginAuthorization, getAccessToken, loadClientConfig, TokenStore } from "./oauth.js";
@@ -35,14 +35,6 @@ export interface GmailServiceOptions {
   readonly oauthTimeoutMs?: number;
   /** Client shipped with the package; defaults to BUNDLED_CLIENT. */
   readonly bundledClient?: GoogleClientConfig | null;
-}
-
-export function openInBrowser(url: string): Promise<boolean> {
-  const [cmd, args]: [string, string[]] =
-    process.platform === "darwin" ? ["open", [url]]
-    : process.platform === "win32" ? ["rundll32", ["url.dll,FileProtocolHandler", url]]
-    : ["xdg-open", [url]];
-  return new Promise((resolve) => execFile(cmd, args, (err) => resolve(!err)));
 }
 
 export function createGmailService(options: GmailServiceOptions): GmailService {
