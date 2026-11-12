@@ -37,7 +37,8 @@ Even from an authorized sender, not every mail is a transaction. Never register:
 | Tu transferencia va en camino / Tu transferencia esta en proceso (same body, two subjects) | "Debitamos los $ X de tu cuenta y los enviamos a <person>" (no date of its own: use the local date of the message, see the date rule) | gasto if sent to a third party; transferencia_propia if to one of the user's own accounts (ask when in doubt) | recipient name |
 | Recibiste dinero en tu cuenta a traves de Bre-B (sender `notificacionesBreB@bbva.com`) | "Fecha y hora" (AAAA/MM/DD HH:MM, local time), "Valor recibido", "Persona que envia", "Tipo de llave", "Cuenta destino", "Codigo de operacion" | ingreso | sender person |
 | Tu envio con llave fue exitoso (Bre-B sent) | compact row: date, amount, recipient | gasto | recipient |
-| Credit-card payment notice | compact row: date, amount | transferencia_propia (card payment from the user's own account) | the card / bank |
+| Credit-card payment notice | "pago de Tarjeta de Crédito No. XXXX1234 ... por un valor de $ ..." | transferencia_propia (card payment from the user's own account; the card's purchases are registered one by one) | "Pago tarjeta de crédito XXXX1234" |
+| BBVA Net - Pagos PSE | tipo de transacción, fecha, establecimiento, valor | gasto | "PSE · " + establecimiento: the real payee is hidden behind PSE, so fixed expenses are matched to these by amount |
 
 The last two rows are compact notices: register them only with the fields they show, and ask the user when the kind (own transfer vs expense) is unclear.
 

@@ -38,7 +38,8 @@ Aunque el remitente sea autorizado, no todo correo es una transacción. Nunca re
 | Recibiste dinero en tu cuenta a través de Bre-B (remitente `notificacionesBreB@bbva.com`) | "Fecha y hora" (AAAA/MM/DD HH:MM, hora local), "Valor recibido", "Persona que envía", "Tipo de llave", "Cuenta destino", "Código de operación" | ingreso | persona que envía |
 
 | Tu envio con llave fue exitoso (Bre-B enviado) | fila compacta: fecha, monto, destinatario | gasto | destinatario |
-| Aviso de pago de tarjeta de crédito | fila compacta: fecha, monto | transferencia_propia (pago de tarjeta desde cuenta propia) | la tarjeta / banco |
+| Aviso de pago de tarjeta de crédito | "pago de Tarjeta de Crédito No. XXXX1234 ... por un valor de $ ..." | transferencia_propia (pago de tarjeta desde cuenta propia; las compras de la tarjeta se registran una a una) | "Pago tarjeta de crédito XXXX1234" |
+| BBVA Net - Pagos PSE | tipo de transacción, fecha, establecimiento, valor | gasto | "PSE · " + establecimiento: el comercio real queda oculto tras PSE, así que los gastos fijos se emparejan con estos por monto |
 
 Las dos últimas filas son avisos compactos: registrar solo con los campos que muestran y preguntar al usuario si el tipo (transferencia propia o gasto) no es claro.
 

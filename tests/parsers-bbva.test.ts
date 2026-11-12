@@ -262,3 +262,29 @@ describe("PSE payments (no 'Detalles de la operación' block, payee hidden behin
     expect(parseBbva({ subject: "BBVA Net - Pagos PSE", text, receivedAt: RECEIVED }).status).toBe("unrecognized");
   });
 });
+
+describe("credit-card payment notices (money leaves the account to settle a card)", () => {
+  const notice = (card: string, date: string, amount: string) => `| BBVA |
+
+| Ref: 10005402 |
+| Estimado (a) Cliente: Nos permitimos informarte que nuestro sistema detectó un pago de Tarjeta de Crédito No. ${card} realizado el día ${date} a las 10:45 horas a través de nuestro servicio de Banca Móvil por un valor de ${amount} . Gracias por utilizar nuestros Canales transaccionales. Cordial saludo, BBVA Creando Oportunidades |`;
+
+  it("registers it as a movement between own accounts, so it does not count as spending", () => {
+    const r = parseBbva({ subject: "BBVA Móvil - Notificación Pago de Tarjetas Crédito", text: notice("XXXX1234", "2026-11-09", "$ 696,480.75"), receivedAt: RECEIVED });
+    expect(r).toEqual({
+      status: "movement",
+      movement: { date: "2026-11-09", amount: 696481, merchant: "Pago tarjeta de crédito XXXX1234", kind: "transferencia_propia" },
+    });
+  });
+
+  it("reads other amount formats and does not leak the footer", () => {
+    const r = parseBbva({ subject: "BBVA Móvil - Notificación Pago de Tarjetas Crédito", text: notice("XXXX9999", "2026-10-13", "$ 2.108.277,00"), receivedAt: RECEIVED });
+    expect(r.status === "movement" && r.movement.amount).toBe(2108277);
+    expect(JSON.stringify(r)).not.toContain("Gracias");
+  });
+
+  it("does not return a movement when the amount is missing", () => {
+    const text = "Estimado (a) Cliente: detectó un pago de Tarjeta de Crédito No. XXXX1234 realizado el día 2026-11-09 a las 10:45 horas. Gracias por utilizar";
+    expect(parseBbva({ subject: "BBVA Móvil - Notificación Pago de Tarjetas Crédito", text, receivedAt: RECEIVED }).status).toBe("unrecognized");
+  });
+});
