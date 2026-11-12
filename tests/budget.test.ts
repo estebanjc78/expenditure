@@ -20,9 +20,9 @@ describe("budget", () => {
     });
   });
 
-  it("devuelve las cuatro categorías en orden", () => {
+  it("devuelve las cinco categorías en orden", () => {
     const s = monthStatus(openDb(":memory:"), "2026-10");
-    expect(s.map((e) => e.category)).toEqual(["supermercado", "suscripcion", "fijo", "otro"]);
+    expect(s.map((e) => e.category)).toEqual(["supermercado", "suscripcion", "fijo", "otro", "pse"]);
   });
 
   it("alert es false al 79% y true al 80%", () => {

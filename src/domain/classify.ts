@@ -13,7 +13,12 @@ export function lookupCategory(db: DatabaseSync, merchant: string): Category | n
   const row = db
     .prepare("SELECT category FROM merchant_rules WHERE merchant = ?")
     .get(normalizeMerchant(merchant)) as { category: Category } | undefined;
-  return row?.category ?? null;
+  return row?.category ?? (isPse(merchant) ? "pse" : null);
+}
+
+/** PSE notices hide the payee ("PSE · PAGOS ELECTRONI"), so they all go to one category unless the user decides otherwise. */
+function isPse(merchant: string): boolean {
+  return /^pse\b/i.test(merchant.trim());
 }
 
 /**

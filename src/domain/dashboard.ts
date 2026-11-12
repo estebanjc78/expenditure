@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { monthStatus } from "./budget.js";
 import { normalizeBank } from "./classify.js";
 import { assertMonth, shiftMonth } from "./month.js";
+import { CATEGORIES } from "./types.js";
 import type { Category, Kind } from "./types.js";
 
 const MAX_MOVEMENTS = 1000;
@@ -103,7 +104,7 @@ function categories(db: DatabaseSync, month: string, scope: Scope, prev: Scope):
   const now = spentByCategory(db, scope);
   const before = spentByCategory(db, prev);
   const budgets = new Map(monthStatus(db, month, scope.bank ?? undefined).map((s) => [s.category, s]));
-  const keys: DashboardCategoryKey[] = ["supermercado", "suscripcion", "fijo", "otro", "sin_categoria"];
+  const keys: DashboardCategoryKey[] = [...CATEGORIES, "sin_categoria"];
   return keys.map((category) => {
     const status = category === "sin_categoria" ? undefined : budgets.get(category);
     return {

@@ -1,14 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
-import { setBudget } from "../domain/budget.js";
+import { CATEGORIES, setBudget } from "../domain/budget.js";
 import { budgetOverview } from "../domain/budget-overview.js";
 import { setMerchantRule, setMerchantRules } from "../domain/classify.js";
 import { importFixedExpenses, pendingFixed, unlistedRecurring } from "../domain/fixed.js";
 import { MONTH_RE } from "../domain/month.js";
 import { run } from "./helpers.js";
 
-const category = z.enum(["supermercado", "suscripcion", "fijo", "otro"]);
+const category = z.enum(CATEGORIES);
 const month = z.string().regex(MONTH_RE, "month must be YYYY-MM").describe("Mes en formato YYYY-MM");
 
 export function registerBudgetTools(server: McpServer, db: DatabaseSync): void {

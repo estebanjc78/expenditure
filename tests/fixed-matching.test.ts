@@ -102,3 +102,16 @@ describe("PSE payments are matched to fixed expenses by amount (the payee is not
     expect(unlistedRecurring(db, "2026-10")).toEqual([{ merchant: "PSE · PAGOS ELECTRONI", category: "fijo", count: 1, total: 777000 }]);
   });
 });
+
+describe("PSE category", () => {
+  it("gives every PSE payment the pse category automatically, unless the user decides otherwise", async () => {
+    const { setMerchantRule } = await import("../src/domain/classify.js");
+    const db = openDb(":memory:");
+    const r = addMovement(db, { sourceId: "x1", date: "2026-10-07", amount: 499000, merchant: "PSE · PAGOS ELECTRONI", bank: "bbva", kind: "gasto" });
+    expect(r.needsClassification).toBe(false);
+    expect(db.prepare("SELECT category FROM movements WHERE source_id = 'x1'").get()).toEqual({ category: "pse" });
+    setMerchantRule(db, "PSE · PAGOS ELECTRONI", "fijo");
+    addMovement(db, { sourceId: "x2", date: "2026-10-08", amount: 1000, merchant: "PSE · PAGOS ELECTRONI", bank: "bbva", kind: "gasto" });
+    expect(db.prepare("SELECT category FROM movements WHERE source_id = 'x2'").get()).toEqual({ category: "fijo" });
+  });
+});

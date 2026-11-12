@@ -13,7 +13,7 @@ describe("budgetOverview", () => {
     addMovement(db, { date: "2026-10-06", amount: 7000, merchant: "B", bank: "bbva", kind: "gasto" });
     addMovement(db, { date: "2026-11-06", amount: 9000, merchant: "C", bank: "bbva", kind: "gasto" });
     const o = budgetOverview(db, "2026-10");
-    expect(o.categories).toHaveLength(4);
+    expect(o.categories).toHaveLength(5);
     expect(o.sinCategoria).toBe(7000);
   });
 

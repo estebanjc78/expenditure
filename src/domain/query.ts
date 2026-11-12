@@ -3,6 +3,7 @@ import { z } from "zod";
 import { normalizeBank } from "./classify.js";
 import { MONTH_RE } from "./month.js";
 import { buildTree, UNCLASSIFIED, type GroupNode } from "./query-tree.js";
+import { CATEGORIES } from "./types.js";
 import type { Movement } from "./types.js";
 
 export type { GroupNode } from "./query-tree.js";
@@ -24,7 +25,7 @@ export const querySchema = z.object({
     from: dateField.optional(),
     to: dateField.optional(),
     month: z.string().regex(MONTH_RE, "month must be YYYY-MM").optional(),
-    category: z.enum(["supermercado", "suscripcion", "fijo", "otro", UNCLASSIFIED]).optional(),
+    category: z.enum([...CATEGORIES, UNCLASSIFIED]).optional(),
     bank: z.string().min(1).optional(),
     merchant: z.string().min(1).optional(),
     kind: z.enum(["gasto", "ingreso", "transferencia_propia"]).optional(),

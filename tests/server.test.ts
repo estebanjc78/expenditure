@@ -102,7 +102,7 @@ describe("servidor MCP", () => {
     await call("fijar_presupuesto", { category: "supermercado", month: "2026-10", amount: 100000 });
     await call("registrar_movimiento", mov);
     const r = JSON.parse((await call("estado_presupuesto", { month: "2026-10" })).text);
-    expect(r.categories).toHaveLength(4);
+    expect(r.categories).toHaveLength(5);
     expect(r.sinCategoria).toBe(50000);
   });
 

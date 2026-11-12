@@ -1,4 +1,6 @@
-export type Category = "supermercado" | "suscripcion" | "fijo" | "otro";
+/** The single list of spending categories. `pse` collects PSE payments, whose payee the bank notice hides. */
+export const CATEGORIES = ["supermercado", "suscripcion", "fijo", "otro", "pse"] as const;
+export type Category = (typeof CATEGORIES)[number];
 export type Kind = "gasto" | "ingreso" | "transferencia_propia";
 
 export interface Movement {

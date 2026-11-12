@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { lookupCategory, normalizeBank } from "./classify.js";
+import { CATEGORIES } from "./types.js";
 import type { MovementInput } from "./types.js";
 
 function isRealCalendarDate(d: string): boolean {
@@ -24,7 +25,7 @@ export const movementInputSchema = z.object({
   merchant: z.string().min(1, "merchant is required"),
   bank: z.string().min(1, "bank is required"),
   kind: z.enum(["gasto", "ingreso", "transferencia_propia"]),
-  category: z.enum(["supermercado", "suscripcion", "fijo", "otro"]).optional(),
+  category: z.enum(CATEGORIES).optional(),
 });
 
 function parseInput(input: MovementInput): MovementInput {

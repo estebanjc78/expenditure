@@ -2,9 +2,10 @@ import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { queryMovements } from "./query.js";
 import { MONTH_RE, assertMonth } from "./month.js";
+import { CATEGORIES } from "./types.js";
 import type { Category } from "./types.js";
 
-export const CATEGORIES: readonly Category[] = ["supermercado", "suscripcion", "fijo", "otro"];
+export { CATEGORIES };
 export const DEFAULT_MONTH = "default";
 export const ALERT_THRESHOLD_PERCENT = 80;
 
@@ -18,7 +19,7 @@ export interface CategoryStatus {
 }
 
 const budgetSchema = z.object({
-  category: z.enum(["supermercado", "suscripcion", "fijo", "otro"]),
+  category: z.enum(CATEGORIES),
   month: z.union([z.literal(DEFAULT_MONTH), z.string().regex(MONTH_RE, "month must be YYYY-MM or 'default'")]),
   amount: z.number().int("amount must be an integer").positive("amount must be positive"),
 });
