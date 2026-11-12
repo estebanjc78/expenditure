@@ -17,11 +17,11 @@ const round = (n, to = 100) => Math.round(n / to) * to;
 const RULES = {
   "Supermercado Ejemplo": "supermercado", "Mercado Demo": "supermercado", "Tienda Ejemplo": "supermercado",
   "Streaming Demo": "suscripcion", "Música Demo": "suscripcion", "Nube Demo": "suscripcion",
-  "Arriendo": "fijo", "Internet Hogar": "fijo", "Energía y Agua": "fijo",
+  "Arriendo": "fijo", "Internet Hogar": "fijo", "Energía y Agua": "fijo", "Servicios Demo": "fijo", "Familia Demo": "otro",
   "Restaurante Demo": "otro", "Taxi Demo": "otro", "Farmacia Demo": "otro", "Librería Demo": "otro", "Cine Demo": "otro",
 };
 for (const [m, c] of Object.entries(RULES)) setMerchantRule(db, m, c);
-for (const [c, a] of [["supermercado", 700000], ["suscripcion", 200000], ["fijo", 1350000], ["otro", 500000]]) setBudget(db, c, "default", a);
+for (const [c, a] of [["supermercado", 3500000], ["suscripcion", 400000], ["fijo", 5500000], ["otro", 4000000]]) setBudget(db, c, "default", a);
 
 const today = bogotaDate(Date.now());
 const current = today.slice(0, 7);
@@ -32,17 +32,19 @@ const add = (m) => addMovement(db, { sourceId: `demo${++n}`, bank: "bbva", kind:
 for (const month of [shiftMonth(current, -2), shiftMonth(current, -1), current]) {
   const days = month === current ? todayDay : new Date(Date.UTC(+month.slice(0, 4), +month.slice(5, 7), 0)).getUTCDate();
   const day = (d) => `${month}-${String(Math.min(d, days)).padStart(2, "0")}`;
-  if (days >= 1) add({ date: day(1), amount: 1200000, merchant: "Arriendo" });
-  if (days >= 3) add({ date: day(3), amount: 150000, merchant: "Internet Hogar" });
-  if (days >= 5) { add({ date: day(5), amount: 6200000, merchant: "Nómina Demo", kind: "ingreso" }); }
+  if (days >= 1) add({ date: day(1), amount: 4500000, merchant: "Arriendo" });
+  if (days >= 3) add({ date: day(3), amount: 280000, merchant: "Internet Hogar" });
+  if (days >= 5) { add({ date: day(5), amount: 20000000, merchant: "Nómina Demo", kind: "ingreso" }); }
+  if (days >= 10) add({ date: day(10), amount: 2500000, merchant: "Servicios Demo" });
   if (days >= 9) add({ date: day(9), amount: 38900, merchant: "Streaming Demo" });
   if (days >= 12) add({ date: day(12), amount: 21900, merchant: "Música Demo" });
-  if (days >= 15) { add({ date: day(15), amount: 94000, merchant: "Nube Demo" }); add({ date: day(15), amount: 310000, merchant: "Energía y Agua" }); }
-  if (days >= 20) add({ date: day(20), amount: 850000, merchant: "Proyecto Demo", kind: "ingreso" });
+  if (days >= 15) { add({ date: day(15), amount: 94000, merchant: "Nube Demo" }); add({ date: day(15), amount: 650000, merchant: "Energía y Agua" }); }
+  if (days >= 18) add({ date: day(18), amount: 9000000, merchant: "Familia Demo" });
+  if (days >= 20) add({ date: day(20), amount: 5200000, merchant: "Proyecto Demo", kind: "ingreso" });
   for (let d = 1; d <= days; d += 1) {
-    if (rnd() < 0.55) add({ date: day(d), amount: round(40000 + rnd() * 160000), merchant: pick(["Supermercado Ejemplo", "Mercado Demo", "Tienda Ejemplo"]) });
-    if (rnd() < 0.4) add({ date: day(d), amount: round(12000 + rnd() * 90000), merchant: pick(["Restaurante Demo", "Taxi Demo", "Farmacia Demo", "Librería Demo", "Cine Demo"]) });
-    if (rnd() < 0.12) add({ date: day(d), amount: round(15000 + rnd() * 70000), merchant: pick(["Comercio Nuevo", "Kiosco Esquina"]) });
+    if (rnd() < 0.55) add({ date: day(d), amount: round(120000 + rnd() * 520000), merchant: pick(["Supermercado Ejemplo", "Mercado Demo", "Tienda Ejemplo"]) });
+    if (rnd() < 0.4) add({ date: day(d), amount: round(40000 + rnd() * 380000), merchant: pick(["Restaurante Demo", "Taxi Demo", "Farmacia Demo", "Librería Demo", "Cine Demo"]) });
+    if (rnd() < 0.12) add({ date: day(d), amount: round(60000 + rnd() * 260000), merchant: pick(["Comercio Nuevo", "Kiosco Esquina"]) });
     if (rnd() < 0.15) add({ date: day(d), amount: round(8000 + rnd() * 30000), merchant: pick(["Tienda Ejemplo", "Taxi Demo"]), bank: "nequi" });
   }
 }

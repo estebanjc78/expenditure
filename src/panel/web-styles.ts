@@ -73,7 +73,7 @@ td.num { white-space: nowrap; }
 
 /* hero */
 .hero-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px 48px; flex-wrap: wrap; padding-bottom: 28px; }
-.hero-value { font-size: clamp(52px, 9vw, 96px); line-height: 1; font-weight: 600; letter-spacing: -0.04em; margin: 10px 0 0; }
+.hero-value { font-size: clamp(40px, 12.5vw, 96px); line-height: 1; font-weight: 600; letter-spacing: -0.04em; margin: 10px 0 0; }
 .hero-side { max-width: 360px; padding-bottom: 6px; }
 .hero-chart { border-top: 1px solid var(--grid); padding-top: 22px; }
 .tools { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
