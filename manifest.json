@@ -1,0 +1,51 @@
+{
+  "manifest_version": "0.3",
+  "name": "expenditures-control",
+  "display_name": "Expenditures Control",
+  "version": "0.1.0",
+  "description": "Keeps bank-notification movements in a local SQLite file and answers budget questions by category and month.",
+  "long_description": "Claude reads your bank notification emails with its own Gmail connector (read-only) and hands this extension only the extracted data: date, amount, merchant, bank, kind. Everything is stored in a SQLite file on your computer (default ~/.gastos-mcp/gastos.db). The extension never touches your email.",
+  "author": { "name": "Esteban J. Campos", "url": "https://github.com/estebanjc78" },
+  "repository": { "type": "git", "url": "https://github.com/estebanjc78/expenditures-control" },
+  "homepage": "https://github.com/estebanjc78/expenditures-control",
+  "support": "https://github.com/estebanjc78/expenditures-control/issues",
+  "keywords": ["budget", "expenses", "sqlite", "colombia"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.mjs"]
+    }
+  },
+  "tools": [
+    { "name": "registrar_movimiento", "description": "Save one already-interpreted movement." },
+    { "name": "registrar_movimientos", "description": "Save up to 100 movements in one batch." },
+    { "name": "consultar_movimientos", "description": "Filter and group movements (by category, bank, merchant, day or month)." },
+    { "name": "clasificar_comercio", "description": "Assign a category to a merchant and reclassify its expenses." },
+    { "name": "fijar_presupuesto", "description": "Set the budget of a category for a month (or the default)." },
+    { "name": "estado_presupuesto", "description": "Spent vs budget per category, with an alert at 80%." },
+    { "name": "importar_gastos_fijos", "description": "Load the fixed-expenses list from an Excel file." },
+    { "name": "gastos_fijos_pendientes", "description": "Fixed expenses of the month: paid and still due." },
+    { "name": "ultimo_movimiento_registrado", "description": "Most recent movement date per bank." },
+    { "name": "listar_remitentes", "description": "List authorized bank senders and the Gmail query to use." },
+    { "name": "agregar_remitente", "description": "Add a bank sender address." },
+    { "name": "quitar_remitente", "description": "Remove a bank sender address." },
+    { "name": "filtrar_no_registrados", "description": "From a list of message ids, return those not registered yet." },
+    { "name": "clasificar_comercios", "description": "Classify many merchants at once and reclassify their expenses." },
+    { "name": "conectar_gmail", "description": "Connect Gmail (read-only) with a one-time Allow click." },
+    { "name": "estado_gmail", "description": "Show whether Gmail is configured and connected." },
+    { "name": "desconectar_gmail", "description": "Delete the Gmail token stored on this computer." },
+    { "name": "gastos_recurrentes_no_listados", "description": "Find subscriptions and fixed charges you pay but do not track in your fixed-expenses list." },
+    { "name": "formatos_banco", "description": "Show which banks the server can read and which senders still need rules." },
+    { "name": "configurar_formato_banco", "description": "Learn a new bank's notices from 3-4 confirmed examples; saved only if all pass." },
+    { "name": "eliminar_formato_banco", "description": "Delete learned reading rules for a sender." },
+    { "name": "abrir_panel", "description": "Open an interactive spending dashboard in your browser (local, read-only)." },
+    { "name": "sincronizar_gmail", "description": "Read bank mails for a date range directly from Gmail and register the movements." }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=22.13.0" }
+  },
+  "license": "MIT"
+}

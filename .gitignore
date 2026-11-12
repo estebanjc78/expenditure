@@ -2,3 +2,8 @@ node_modules
 *.db
 dist
 .superpowers
+.DS_Store
+build/
+build-secrets/
+.playwright-mcp/
+*.mcpb

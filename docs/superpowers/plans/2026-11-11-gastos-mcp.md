@@ -161,3 +161,53 @@
 - [ ] **Step 2:** Escribir `docs/sync-guide.md`: la consulta de Gmail que encuentra los comprobantes, cómo mapear cada mail a `registrar_movimiento` (incluido cuándo es `ingreso` o `transferencia_propia`), usar `ultimo_movimiento_registrado` para sincronizar desde esa fecha, y preguntar a Esteban cuando `needsClassification` sea true.
 - [ ] **Step 3:** Prueba de punta a punta en Claude: sincronizar, pedir "cómo van los gastos de este mes por rubro", abrir una categoría. Verificar que los totales coinciden con la suma manual de los comprobantes.
 - [ ] **Step 4:** Commit `docs: sync guide validated against real receipts`.
+
+### Task 9: Remitentes bancarios y registro por lote
+
+**Added after user feedback:** filter by sender instead of by subject, avoid re-reading registered mails, and register in batches. The LLM is always Claude (client side); the server has no model.
+
+**Files:**
+- Modify: `src/db.ts` (new table `senders(address TEXT PRIMARY KEY, label TEXT)`), `src/server.ts` and `src/tools/*` (register 5 new tools), `README.md`, `docs/sync-guide.md`
+- Create: `src/domain/senders.ts`, `src/domain/batch.ts`, `src/tools/senders.ts`
+- Test: `tests/senders.test.ts`, `tests/batch.test.ts`, update `tests/server.test.ts` (tool count 8 → 13)
+
+**Interfaces:**
+- Consumes: `addMovement`, `MovementInput`, `movementInputSchema`.
+- Produces:
+  - `addSender(db, address: string, label?: string): { address: string; added: boolean }` (address trimmed + lowercased, must contain `@`; re-adding is not an error, `added:false`); `removeSender(db, address): { removed: boolean }`; `listSenders(db): Array<{ address: string; label: string | null }>` sorted by address; `gmailSenderQuery(senders): string` → `from:(a@x.com OR b@y.com)` (empty list → empty string).
+  - `filterUnregistered(db, sourceIds: string[]): string[]` (returns the input ids, in order and without duplicates, that are NOT registered; an id counts as registered if some movement has `source_id` equal to it or starting with `<id>#`).
+  - `addMovements(db, inputs: unknown[]): BatchResult` with `BatchResult = { results: Array<{ index: number; id?: number; duplicate?: boolean; needsClassification?: boolean; error?: string }>; summary: { registered: number; duplicates: number; failed: number } }`; max 100 items (more → throws "max 100"); each item validated and inserted independently (one bad item never aborts the others), all inside one transaction.
+  - Tools: `listar_remitentes` (returns `{senders, gmailQuery}`), `agregar_remitente` `{address, label?}`, `quitar_remitente` `{address}`, `filtrar_no_registrados` `{sourceIds: string[]}` (max 500), `registrar_movimientos` `{movements: MovementInput[]}` (max 100). Descriptions in Spanish telling Claude the flow: listar_remitentes → search Gmail with `gmailQuery` and the date → filtrar_no_registrados with the found message ids → interpret each mail (it may be a promotion, a rejected payment, or not a transaction: do not register those) → registrar_movimientos.
+
+- [ ] **Step 1:** Tests: senders (normalization, re-add, remove, list order, gmailQuery with 0/1/2 senders); filterUnregistered (registered id, `id#1` counts as registered, order kept, duplicates removed, empty input); addMovements (3 valid → registered 3; one invalid amount among valid → failed 1 with error naming `amount` and the rest registered; same sourceId twice in one batch → second duplicate; 101 items throws; per-item `needsClassification` reported); server tests: 13 tools listed, `registrar_movimientos` and `filtrar_no_registrados` end-to-end, invalid input isError.
+- [ ] **Step 2:** Run; Expected: FAIL.
+- [ ] **Step 3:** Implement the signatures above; reuse `addMovement` per item; the new table via `CREATE TABLE IF NOT EXISTS` in `openDb`.
+- [ ] **Step 4:** Update `README.md` (13 tools, new flow) and `docs/sync-guide.md` §1 and §4 to the sender-based flow (replace the subject-based Gmail query by `gmailQuery`; keep the table of known mail types as examples of what Claude will see, and keep the rule "Pago Rechazado and promotions are not transactions").
+- [ ] **Step 5:** Run `npm test`, `npm run build`, `npm run typecheck`; Expected: all green.
+- [ ] **Step 6:** Commit `feat: bank sender allowlist, unregistered filter and batch registration`.
+
+### Task 10: Empaquetado (npm + MCPB) y README de instalación
+
+**Added after user decision:** distribute without Docker via (1) an npm package run with `npx` and (2) a one-click `.mcpb` bundle for Claude Desktop; plus a detailed install README. A standalone executable is deferred.
+
+**Public repo (https://github.com/estebanjc78/expenditure):** the project is public and meant to reach a wide audience, so ALL user-facing documentation is written in English first: `README.md` in English (the GitHub front page: one-line pitch, a real usage example, architecture diagram, privacy section, install paths, tool list, limitations), with a Spanish `README.es.md` linked from the top; `docs/sync-guide.md` translated to English (keep the Spanish original as `docs/sync-guide.es.md`); package name `expenditure` (verified free on npm; do not publish). Tool descriptions stay as they are. License: leave a LICENSE decision to the user (suggest MIT, do not add one without their yes).
+
+**Verify before building (do not assume):**
+- Current MCPB spec in https://github.com/modelcontextprotocol/mcpb (sources disagree on `manifest_version` 0.2 vs 0.3) and `npx @anthropic-ai/mcpb validate` / `pack`.
+- **Which Node version Claude Desktop bundles for `.mcpb` servers.** The server uses `node:sqlite` (Node >=22.5). If the bundled Node is older, the bundle cannot use `node:sqlite`: then decide with the controller between a WASM SQLite (e.g. sql.js, no native deps) behind the existing db layer, or documenting that the bundle is unavailable; do not ship a bundle that fails at start.
+- Package name availability on npm (`npm view <name>`); do NOT publish: publishing is the user's decision, the task ends at a tarball verified with `npm pack` and installed from it in a temp dir.
+
+**Files:**
+- Modify: `package.json` (name, version, `bin`, `files`, `engines`, `repository`/`license` placeholders marked TODO for the user, `prepack` build), `README.md` (full rewrite)
+- Create: `manifest.json` (MCPB), `scripts/build-mcpb.*` (bundle server with esbuild into one JS file, then `mcpb pack`), `LICENSE` only if the user chooses one (otherwise leave a TODO, do not invent a license)
+- Test: a smoke script `scripts/smoke-pack.*`: `npm pack` → install the tarball in a temp dir → run its bin over stdio with `GASTOS_DB=:memory:` → assert `tools/list` returns 13 tools.
+
+**README must cover (plain language, step by step):** what it is and what data it stores locally; requirements (Node >=22.5 for npm path); install A (Claude Code: `claude mcp add gastos -- npx -y <package>`), install B (Claude Desktop: double-click the `.mcpb`, with where to find the file), install C (manual JSON config for other clients); where the database lives (`GASTOS_DB`, default `~/.gastos-mcp/gastos.db`) and how to back it up / delete it; first-use walkthrough (add senders, sync, first queries, importing the fixed-expenses Excel with its format); privacy (email never read by the server; only extracted data stored); the tools list; troubleshooting (Node too old, tool not showing up, DB path); limitations (no edit/delete of a movement yet, receipt formats validated only for BBVA Colombia).
+
+- [ ] Step 1: Research the three "verify" items above and write the findings at the top of the task report; stop with NEEDS_CONTEXT if the Node-version question blocks the bundle.
+- [ ] Step 2: Make `npm pack` produce a tarball with only `dist/`, `README.md`, `package.json` (no tests, no docs/superpowers, no .superpowers); `bin` points to `dist/index.js` with a shebang and exec permission.
+- [ ] Step 3: Smoke script test (RED → GREEN) as described.
+- [ ] Step 4: MCPB manifest + build script; `mcpb validate` passes and `mcpb pack` produces the `.mcpb`; unzip and confirm it contains the single bundled server file and the manifest.
+- [ ] Step 5: Rewrite README per the list above.
+- [ ] Step 6 (sync guide, from the real-email end-to-end test): in the English `docs/sync-guide.md` (and the Spanish copy) add: exact tool argument names with a JSON example (`filtrar_no_registrados` takes `sourceIds: string[]`; `registrar_movimientos` takes `movements: MovementInput[]` with sourceId, date, kind, merchant, amount, bank); Gmail search groups by thread and shows only 5 messages per thread, so expand threads (get_thread) to list every message id and page through results instead of capping at 25; compact rows for Bre-B sent ("Tu envio con llave fue exitoso"), credit-card payment notices, own-account transfers in foreign currency (USD to COP: do not register without asking the user), and a skip list for login/security mails ("Confirmacion de ingreso", "Iniciaste otra sesion", ATM key assignment, "Pago Rechazado", promotions); note that Compra Exitosa, PSE and Bre-B summaries do not show the amount in the snippet, so read the full PLAIN_TEXT body; rule for suspicious charges: very small amounts (under 1,000 COP) or identical charges repeated within minutes, or a charge right after a rejected payment, are NOT registered silently: list them to the user and ask (they may be card validations or retries); an amount like "$100.00" is ambiguous between USD and COP, ask; merchants with `*` patterns (e.g. `Dlo*microsoft*sto`) are separate merchants and each needs classification once.
+- [ ] Step 7: `npm test`, `npm run build`, `npm run typecheck`, smoke script all green; commit with `git commit -m "<subject>" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"`, run as its own command (never chained with other commands; never bypass hooks).
