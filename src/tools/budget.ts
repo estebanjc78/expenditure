@@ -84,7 +84,7 @@ export function registerBudgetTools(server: McpServer, db: DatabaseSync): void {
   server.registerTool(
     "gastos_fijos_pendientes",
     {
-      description: "Lista los gastos fijos del mes YYYY-MM indicando cuáles ya se pagaron y cuáles faltan por pagar.",
+      description: "Lista los gastos fijos del mes YYYY-MM indicando cuáles ya se pagaron y cuáles faltan por pagar (los pagos PSE se emparejan por monto: matchedBy:\"amount\").",
       inputSchema: { month },
     },
     ({ month: m }) => run(() => pendingFixed(db, m)),
