@@ -28,12 +28,19 @@ export interface OAuthDeps {
   readonly timeoutMs?: number;
 }
 
-/** Client id/secret come from env vars or from the JSON downloaded in Google Cloud (`google-client.json`). */
-export function loadClientConfig(dir: string, env: Readonly<Record<string, string | undefined>>): GoogleClientConfig | null {
+/**
+ * Client id/secret, in priority order: env vars, the JSON downloaded in Google Cloud (`google-client.json`),
+ * then the client bundled with the package (so end users need no setup).
+ */
+export function loadClientConfig(
+  dir: string,
+  env: Readonly<Record<string, string | undefined>>,
+  bundled: GoogleClientConfig | null = null,
+): GoogleClientConfig | null {
   const id = env.GASTOS_GOOGLE_CLIENT_ID?.trim();
   if (id) return { clientId: id, clientSecret: env.GASTOS_GOOGLE_CLIENT_SECRET?.trim() || undefined };
   const file = join(dir, "google-client.json");
-  if (!existsSync(file)) return null;
+  if (!existsSync(file)) return bundled;
   let json: Record<string, { client_id?: string; client_secret?: string } | undefined>;
   try {
     json = JSON.parse(readFileSync(file, "utf8")) as typeof json;
@@ -41,7 +48,7 @@ export function loadClientConfig(dir: string, env: Readonly<Record<string, strin
     throw new Error("google-client.json no es un JSON válido: vuelve a descargarlo desde Google Cloud");
   }
   const section = json.installed ?? json.web ?? (json as { client_id?: string; client_secret?: string });
-  return section?.client_id ? { clientId: section.client_id, clientSecret: section.client_secret } : null;
+  return section?.client_id ? { clientId: section.client_id, clientSecret: section.client_secret } : bundled;
 }
 
 /** Token file with owner-only permissions. */

@@ -188,3 +188,27 @@ describe("gmail oauth", () => {
     expect(() => loadClientConfig(dir, {})).toThrow(/google-client\.json/);
   });
 });
+
+describe("loadClientConfig with a bundled client", () => {
+  const BUNDLED = { clientId: "bundled-id", clientSecret: "bundled-secret" };
+
+  it("falls back to the bundled client when the user configured nothing", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gastos-bundled-"));
+    try {
+      expect(loadClientConfig(dir, {}, BUNDLED)).toEqual(BUNDLED);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("lets env vars and google-client.json override the bundled client", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gastos-bundled-"));
+    try {
+      expect(loadClientConfig(dir, { GASTOS_GOOGLE_CLIENT_ID: "mine" }, BUNDLED)).toEqual({ clientId: "mine", clientSecret: undefined });
+      writeFileSync(join(dir, "google-client.json"), JSON.stringify({ installed: { client_id: "file-id" } }));
+      expect(loadClientConfig(dir, {}, BUNDLED)).toMatchObject({ clientId: "file-id" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

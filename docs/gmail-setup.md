@@ -1,50 +1,55 @@
-# Connect Gmail (one-time setup)
+# Connect Gmail
 
 [Leer en español](gmail-setup.es.md)
 
 With Gmail connected, the server reads your bank notification emails itself, extracts the data with per-bank rules and returns only a short summary to Claude. This is what makes it practical to load weeks or months of history in one go: the emails never pass through Claude's context.
 
-You need to do this once. After that, connecting is one click on Google's **Allow** button.
-
 > The server asks for the **read-only** scope (`gmail.readonly`). It cannot send, delete or modify mail. The access token is stored only on your computer, in `~/.gastos-mcp/gmail-token.json` (owner-only permissions), next to the database.
 
-## 1. Create a Google Cloud OAuth client
+## For users: three clicks
 
-Google requires every app that reads Gmail to be registered. You register your own, so the access stays under your control.
+1. Ask Claude: **"Connect my Gmail."** Your browser opens Google's page.
+2. Choose your account. Google shows a warning that the app is not verified (see below). Click **Advanced**, then **Go to Expenditures Control (unsafe)**.
+3. Click **Allow**. Done. Ask Claude "Sync my bank emails from 2026-09-01."
 
-1. Open <https://console.cloud.google.com/> and create a project (any name, for example `expenditures-control`).
-2. **APIs & Services > Library**, search for **Gmail API** and click **Enable**.
+Add your bank sender once beforehand: "Add `BBVA@bbvanet.com.co` as a bank sender."
+
+Sync is safe to repeat: mails already processed are not downloaded again. Large ranges are processed in chunks; Claude calls the tool again while `remaining` is above zero. After syncing, Claude classifies the new merchants and shows you the list so you can correct any.
+
+### Why the "unverified app" warning?
+
+Google requires a security review (a yearly paid audit) before it removes that screen for apps that read Gmail. This project has not gone through it yet, so Google shows the warning and allows up to **100 users** in total. The permission is read-only and the token never leaves your computer. If you would rather not use it, Claude's own Gmail connector still works for recent mail (see [sync-guide.md](sync-guide.md)).
+
+### Disconnect
+
+Ask Claude "Disconnect my Gmail" (`desconectar_gmail`) to delete the local token. To also revoke the permission on Google's side, go to <https://myaccount.google.com/permissions>.
+
+## For the maintainer: one-time Google Cloud setup
+
+End users never do this. You create one OAuth client and ship it in the package.
+
+1. Open <https://console.cloud.google.com/> and create a project (for example `expenditures-control`).
+2. **APIs & Services > Library**: search for **Gmail API** and **Enable** it.
 3. **APIs & Services > OAuth consent screen** (or **Google Auth Platform**):
-   - User type: **External**.
-   - App name and support email: anything you like.
+   - User type: **External**. App name: `Expenditures Control`. Add a support email.
    - Add the scope `https://www.googleapis.com/auth/gmail.readonly`.
-   - Add your own Gmail address under **Test users**.
+   - Set the publishing status to **In production**. This lets any user connect (up to the 100-user cap of unverified apps) and avoids the 7-day token expiry that applies in Testing status. It stays unverified.
 4. **APIs & Services > Credentials > Create credentials > OAuth client ID**:
    - Application type: **Desktop app**.
-   - Download the JSON file.
-5. Save that file as `~/.gastos-mcp/google-client.json` (or next to your database if you set `GASTOS_DB`).
+   - Copy the client ID and client secret.
+5. Paste them into [src/gmail/bundled-client.ts](../src/gmail/bundled-client.ts), then rebuild (`npm run build`, `npm run build:mcpb`). For Desktop-app clients Google does not treat the secret as confidential, but you can inject it at build time if you prefer not to commit it.
 
-Alternative to the file: set `GASTOS_GOOGLE_CLIENT_ID` and `GASTOS_GOOGLE_CLIENT_SECRET` in the server's `env`.
+To remove the warning and the 100-user cap later, apply for Google's OAuth verification, which for Gmail read access includes a CASA security assessment renewed every year. Ask an approved assessor for a quote and timeline before committing.
 
-### About the "unverified app" screen and token expiry
+## Use your own Google app (advanced)
 
-- Because the app is yours and is not verified by Google, the consent screen shows a warning. Click **Advanced > Go to (your app name)**. This is expected: you are authorizing your own app on your own account.
-- While the consent screen is in **Testing** status, Google may expire the refresh token after about 7 days, and you will need to run `conectar_gmail` again. If that bothers you, set the publishing status to **In production** (it stays unverified, which is fine for personal use). Check Google's current documentation for the exact rules.
+If a package does not ship a client, or you prefer your own, create one as in the maintainer steps (add yourself as a **Test user** if you keep the app in Testing status) and give it to the server in either way:
 
-## 2. Connect
+- Save the downloaded JSON as `~/.gastos-mcp/google-client.json` (or next to your database if you set `GASTOS_DB`).
+- Or set `GASTOS_GOOGLE_CLIENT_ID` and `GASTOS_GOOGLE_CLIENT_SECRET` in the server's `env`.
 
-Ask Claude: **"Connect my Gmail."** Claude runs `conectar_gmail`, your browser opens Google's consent page, you click **Allow**, and you are done. `estado_gmail` shows whether it worked.
-
-## 3. Sync
-
-1. Add your bank sender once: "Add `BBVA@bbvanet.com.co` as a bank sender."
-2. Ask: "Sync my bank emails from 2026-09-01." Claude runs `sincronizar_gmail`. It is safe to repeat: mails already processed are not downloaded again. Large ranges are processed in chunks; Claude calls it again while `remaining` is above zero.
-3. Claude classifies the new merchants (`clasificar_comercios`) and shows you the list so you can correct any.
+These override the client shipped with the package.
 
 ## Supported banks
 
 BBVA Colombia: purchases, received money (Bre-B and transfers), own-account transfers, transfers to third parties. Foreign-currency transfers are reported for your review instead of being registered. Other banks need a parser in `src/parsers/`.
-
-## Disconnect
-
-Ask Claude: "Disconnect my Gmail" (`desconectar_gmail`) to delete the local token. To also revoke the permission on Google's side, go to <https://myaccount.google.com/permissions>.

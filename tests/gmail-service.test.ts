@@ -42,4 +42,9 @@ describe("createGmailService", () => {
     expect(() => svc.source()).toThrow(/conectar_gmail/);
     expect(svc.disconnect()).toEqual({ disconnected: false });
   });
+
+  it("is configured out of the box when the package ships a Google client", () => {
+    const svc = createGmailService({ dataDir: dir, env: {}, bundledClient: { clientId: "bundled-id" } });
+    expect(svc.status()).toMatchObject({ configured: true, connected: false });
+  });
 });

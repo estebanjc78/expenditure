@@ -1,13 +1,14 @@
 import { execFile } from "node:child_process";
 import { join } from "node:path";
+import { BUNDLED_CLIENT } from "./bundled-client.js";
 import { GmailApiSource } from "./client.js";
 import { beginAuthorization, getAccessToken, loadClientConfig, TokenStore } from "./oauth.js";
 import type { GoogleClientConfig } from "./oauth.js";
 import type { MailSource } from "./source.js";
 
 const SETUP_HINT =
-  "Falta la configuración de Google: crea un cliente OAuth de tipo 'Aplicación de escritorio' en Google Cloud (guía: docs/gmail-setup.md) " +
-  "y guarda el JSON como google-client.json en la carpeta de datos, o define GASTOS_GOOGLE_CLIENT_ID y GASTOS_GOOGLE_CLIENT_SECRET.";
+  "Esta instalación no trae la app de Google incluida. Opciones: usa el conector de Gmail de Claude para los correos recientes (docs/sync-guide.md), " +
+  "o configura tu propia app de Google (docs/gmail-setup.md, sección 'Use your own Google app').";
 
 export interface GmailStatus {
   readonly configured: boolean;
@@ -32,6 +33,8 @@ export interface GmailServiceOptions {
   readonly openUrl?: (url: string) => Promise<boolean>;
   /** How long to wait for the user to click Allow (tests shorten it). */
   readonly oauthTimeoutMs?: number;
+  /** Client shipped with the package; defaults to BUNDLED_CLIENT. */
+  readonly bundledClient?: GoogleClientConfig | null;
 }
 
 export function openInBrowser(url: string): Promise<boolean> {
@@ -49,7 +52,7 @@ export function createGmailService(options: GmailServiceOptions): GmailService {
   let pending: Promise<{ url: string }> | null = null;
   let lastError: string | null = null;
 
-  const config = (): GoogleClientConfig | null => loadClientConfig(options.dataDir, env);
+  const config = (): GoogleClientConfig | null => loadClientConfig(options.dataDir, env, options.bundledClient === undefined ? BUNDLED_CLIENT : options.bundledClient);
   const requireConfig = (): GoogleClientConfig => {
     const c = config();
     if (!c) throw new Error(SETUP_HINT);

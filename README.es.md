@@ -63,7 +63,7 @@ El servidor no tiene modelo de lenguaje. Con Gmail conectado, el servidor descar
 
 - Node.js 22.13 o superior (el servidor usa `node:sqlite`, incluido en Node). Verifica con `node --version`.
 - Un cliente MCP: Claude Code, Claude Desktop u otro que ejecute servidores stdio.
-- Para sincronizar correo: conectar Gmail al servidor (configuración única en Google, ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)) o usar el conector de Gmail de Claude.
+- Para sincronizar correo: conectar Gmail al servidor (tres clics, ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)) o usar el conector de Gmail de Claude.
 
 ## Instalación
 
@@ -113,7 +113,7 @@ La base de datos es un solo archivo. Por defecto: `~/.gastos-mcp/gastos.db` (la 
 ## Primer uso
 
 1. **Agrega tus remitentes bancarios.** Pídele a Claude: "Agrega `BBVA@bbvanet.com.co` como remitente bancario." No hay ninguno por defecto; el servidor solo trata como notificación bancaria el correo de estas direcciones.
-2. **Conecta Gmail (una vez).** Sigue [docs/gmail-setup.es.md](docs/gmail-setup.es.md) y luego pide: "Conecta mi Gmail" y pulsa **Permitir** en el navegador.
+2. **Conecta Gmail (una vez).** Pide: "Conecta mi Gmail", elige tu cuenta en el navegador y pulsa **Permitir** (Google muestra primero un aviso de "app no verificada"; ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)).
 3. **Sincroniza.** Pide: "Sincroniza mis correos del banco desde 2026-09-01." El servidor descarga y procesa los correos por sí mismo y devuelve un resumen (registrados, omitidos, para revisar, comercios sin categoría). Se puede repetir sin riesgo. Sin la conexión de Gmail, Claude puede leer los correos recientes con su propio conector; ver [docs/sync-guide.es.md](docs/sync-guide.es.md).
 4. **Clasifica comercios.** Claude clasifica los comercios nuevos por su nombre (`supermercado`, `suscripcion`, `fijo` u `otro`), te muestra la lista y tú corriges lo que esté mal. Cada comercio se clasifica una vez y se recuerda, también para movimientos pasados.
 5. **Define presupuestos.** "Fija un presupuesto de 700.000 para supermercado en todos los meses."
@@ -166,7 +166,7 @@ Los nombres de las herramientas están en español.
 ## Limitaciones
 
 - Todavía no hay herramienta para editar o borrar un movimiento.
-- La sincronización con Gmail requiere una configuración única en Google Cloud, hecha por ti (ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)). Se probó con respuestas de Google simuladas y con formatos reales de correos de BBVA, pero todavía no de punta a punta contra los servidores de Google.
+- La sincronización con Gmail usa una app de Google incluida en el paquete (el mantenedor la configura una sola vez, ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)). Hasta que Google la verifique, muestra una pantalla de "app no verificada" y permite 100 usuarios en total. Se probó con respuestas de Google simuladas y con formatos reales de correos de BBVA, pero todavía no de punta a punta contra los servidores de Google.
 - Solo hay parsers para BBVA Colombia. Otros bancos necesitan un parser en `src/parsers/` (o la vía manual con el conector de Gmail de Claude).
 - Las transferencias en moneda extranjera no se registran solas; se reportan para tu revisión.
 - El servidor confía en la dirección `From` que reporta Gmail y se apoya en la protección anti-suplantación de Gmail; todavía no verifica DKIM por su cuenta. El texto tomado de los correos (comercio, asunto) se limpia y se acota antes de llegar al modelo, pero trátalo como datos.

@@ -63,7 +63,7 @@ The server has no language model. With Gmail connected, the server downloads the
 
 - Node.js 22.13 or newer (the server uses the built-in `node:sqlite`). Check with `node --version`.
 - An MCP client: Claude Code, Claude Desktop, or any client that runs stdio servers.
-- For email sync: either connect Gmail to the server (one-time Google setup, see [docs/gmail-setup.md](docs/gmail-setup.md)) or use Claude's own Gmail connector.
+- For email sync: connect Gmail to the server (three clicks, see [docs/gmail-setup.md](docs/gmail-setup.md)) or use Claude's own Gmail connector.
 
 ## Install
 
@@ -113,7 +113,7 @@ The database is one file. Default: `~/.gastos-mcp/gastos.db` (the folder is crea
 ## First use
 
 1. **Add your bank senders.** Ask Claude: "Add `BBVA@bbvanet.com.co` as a bank sender." There are none by default; the server only treats mail from these addresses as bank notifications.
-2. **Connect Gmail (once).** Follow [docs/gmail-setup.md](docs/gmail-setup.md), then ask: "Connect my Gmail" and click **Allow** in the browser.
+2. **Connect Gmail (once).** Ask: "Connect my Gmail", then in the browser choose your account and click **Allow** (Google shows an "unverified app" notice first; see [docs/gmail-setup.md](docs/gmail-setup.md)).
 3. **Sync.** Ask: "Sync my bank emails from 2026-09-01." The server downloads and parses the mails itself and returns a summary (registered, skipped, needs review, merchants without category). It is safe to repeat. Without the Gmail connection, Claude can read recent mails with its own connector instead; see [docs/sync-guide.md](docs/sync-guide.md).
 4. **Classify merchants.** Claude classifies new merchants itself from their names (`supermercado`, `suscripcion`, `fijo` or `otro`), shows you the list, and you correct what is wrong. Each merchant is classified once and remembered, including for past movements.
 5. **Set budgets.** "Set a 700,000 supermercado budget for every month."
@@ -166,7 +166,7 @@ The tool names are in Spanish.
 ## Limitations
 
 - No tool to edit or delete a movement yet.
-- Gmail sync needs a one-time Google Cloud setup of your own (see [docs/gmail-setup.md](docs/gmail-setup.md)). It has been tested against simulated Google responses and real BBVA email formats, not yet end to end against Google's servers.
+- Gmail sync uses a Google app shipped with the package (the maintainer sets it up once, see [docs/gmail-setup.md](docs/gmail-setup.md)). Until Google verifies it, Google shows an "unverified app" screen and allows 100 users in total. It has been tested against simulated Google responses and real BBVA email formats, not yet end to end against Google's servers.
 - Parsers exist only for BBVA Colombia. Other banks need a parser in `src/parsers/` (or the manual path through Claude's Gmail connector).
 - Foreign-currency transfers are not registered automatically; they are reported for your review.
 - The server trusts the `From` address Gmail reports and relies on Gmail's own spoofing protection; it does not verify DKIM itself yet. Text taken from emails (merchant, subject) is cleaned and length-limited before it reaches the model, but treat it as data.
