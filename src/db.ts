@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS senders (
   address TEXT PRIMARY KEY,
   label TEXT
 );
+CREATE TABLE IF NOT EXISTS mail_log (
+  message_id TEXT PRIMARY KEY,
+  outcome TEXT NOT NULL,
+  subject TEXT
+);
 `;
 
 export function openDb(path: string): DatabaseSync {
