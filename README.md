@@ -6,7 +6,12 @@ An MCP server that keeps your bank-notification movements (COP) in a local SQLit
 
 ## What it looks like
 
-All figures below are made up.
+Ask Claude to **"open my spending panel"** and a visual, interactive dashboard opens in your browser: one headline number, your pace against last month, categories that expand with a click, a day-by-day chart, and a searchable table. It runs only on your computer, refreshes by itself, and follows your light or dark theme. (Demo data.)
+
+![Dashboard, light theme](docs/images/panel-light.png)
+![Dashboard, dark theme](docs/images/panel-dark.png)
+
+Or ask in plain text. All figures below are made up.
 
 > **You:** How did October go by category?
 >
@@ -57,6 +62,7 @@ The server has no language model. With Gmail connected, the server downloads the
 - The server stores only extracted data: date, amount, merchant, bank, kind (expense, income, own transfer) and category. It never stores the text of an email.
 - Everything lives in files on your computer. The only network traffic of this server is to Google's APIs (Gmail and sign-in) when you connect Gmail.
 - Merchant names, amounts and subjects that the server returns are visible to Claude like any tool result.
+- The dashboard is served only on `127.0.0.1` (never on the network), needs a secret token that travels in the URL fragment, refuses any other `Host`, is read-only and loads nothing from the internet.
 - Note: when Claude reads your emails or queries the data, that content is processed by your Claude client under its own privacy terms.
 
 ## Requirements
@@ -130,7 +136,7 @@ Optional. Create an `.xlsx` with the first sheet like this (headers on row 1, ca
 
 `comercio` is the keyword used to detect the payment among your movements (whole words; if empty, `nombre` is used). Then ask Claude to import it from the file path. Importing replaces the previous list.
 
-## Tools (18)
+## Tools (19)
 
 The tool names are in Spanish.
 
@@ -154,6 +160,7 @@ The tool names are in Spanish.
 | `desconectar_gmail` | Delete the Gmail token stored on this computer. |
 | `sincronizar_gmail` | Download and parse bank mails for a date range and register the movements; returns a summary. |
 | `clasificar_comercios` | Classify many merchants at once and reclassify their expenses. |
+| `abrir_panel` | Open the interactive spending dashboard in your browser (local, read-only). |
 
 ## Troubleshooting
 
@@ -183,8 +190,9 @@ npm install
 npm test            # unit tests
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 18 tools over stdio
+npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 19 tools over stdio
 npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
+npm run build && node scripts/panel-demo.mjs --open  # look at the dashboard with made-up data
 ```
 
 Repository: https://github.com/estebanjc78/expenditures-control

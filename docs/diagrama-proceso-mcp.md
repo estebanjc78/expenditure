@@ -9,7 +9,7 @@ Flujo de una solicitud desde el asistente hasta la base SQLite local y de vuelta
 flowchart TD
     U["Usuario pide sincronizar o consultar gastos"] --> C["Cliente MCP / Claude"]
     C -->|"Inicializa conexión y descubre capacidades"| S["Servidor MCP expenditures-control"]
-    S -->|"Lista las 18 herramientas"| C
+    S -->|"Lista las 19 herramientas"| C
 
     C --> D{"¿Cómo se leen los correos?"}
 
@@ -43,6 +43,10 @@ flowchart TD
     C -->|"consultar_movimientos, estado_presupuesto"| S
     S --> DB
 
+    C -->|"abrir_panel"| W["Panel web local: 127.0.0.1, token secreto, solo lectura"]
+    W -->|"Lee la base y se actualiza solo"| DB
+    W --> U
+
     C --> A["Interpretar resultado y responder al usuario"]
     A --> U
 ```
@@ -58,3 +62,4 @@ flowchart TD
 7. Claude clasifica los comercios nuevos con `clasificar_comercios` y le muestra la lista al usuario para que corrija lo que haga falta.
 8. Para consultas (presupuesto, categorías, meses), Claude elige la herramienta, el servidor valida, consulta la base y devuelve el resultado.
 9. Claude interpreta la respuesta y se la comunica al usuario.
+10. Si el usuario prefiere verlo, `abrir_panel` abre en su navegador un panel interactivo (gráficos, categorías, comparación con el mes anterior). El panel lee la misma base, solo escucha en `127.0.0.1` y se refresca solo cuando llegan movimientos nuevos.

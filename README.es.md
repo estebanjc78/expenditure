@@ -6,6 +6,13 @@ Servidor MCP que guarda tus movimientos bancarios (COP), tomados de las notifica
 
 ## Cómo se ve
 
+Pídele a Claude **"abre mi panel de gastos"** y se abre en tu navegador un panel visual e interactivo: un número protagonista, tu ritmo frente al mes anterior, categorías que se expanden con un clic, un gráfico día a día y una tabla con búsqueda. Corre solo en tu computador, se actualiza solo y sigue tu tema claro u oscuro. (Datos de demostración.)
+
+![Panel, tema claro](docs/images/panel-light.png)
+![Panel, tema oscuro](docs/images/panel-dark.png)
+
+O pregunta en texto.
+
 Todas las cifras son inventadas.
 
 > **Tú:** ¿Cómo me fue en octubre por categoría?
@@ -57,6 +64,7 @@ El servidor no tiene modelo de lenguaje. Con Gmail conectado, el servidor descar
 - Solo se guardan datos extraídos: fecha, monto, comercio, banco, tipo (gasto, ingreso, transferencia propia) y categoría. Nunca el texto de un correo.
 - Todo vive en archivos en tu computador. El único tráfico de red de este servidor es hacia las APIs de Google (Gmail e inicio de sesión) cuando conectas Gmail.
 - Los nombres de comercios, montos y asuntos que devuelve el servidor los ve Claude, como cualquier resultado de una herramienta.
+- El panel se sirve solo en `127.0.0.1` (nunca en la red), exige un token secreto que viaja en el fragmento de la URL, rechaza cualquier otro `Host`, es de solo lectura y no carga nada de internet.
 - Ojo: cuando Claude lee tus correos o consulta los datos, ese contenido lo procesa tu cliente de Claude bajo sus propios términos de privacidad.
 
 ## Requisitos
@@ -130,7 +138,7 @@ Opcional. Crea un `.xlsx` con la primera hoja así (encabezados en la fila 1, si
 
 `comercio` es la palabra clave para detectar el pago entre tus movimientos (palabras completas; si está vacío se usa `nombre`). Luego pídele a Claude que lo importe desde la ruta del archivo. Importar reemplaza la lista anterior.
 
-## Herramientas (18)
+## Herramientas (19)
 
 Los nombres de las herramientas están en español.
 
@@ -154,6 +162,7 @@ Los nombres de las herramientas están en español.
 | `desconectar_gmail` | Borra el token de Gmail guardado en este computador. |
 | `sincronizar_gmail` | Descarga y procesa los correos del banco de un rango de fechas y registra los movimientos; devuelve un resumen. |
 | `clasificar_comercios` | Clasifica varios comercios de una vez y reclasifica sus gastos. |
+| `abrir_panel` | Abre en tu navegador el panel interactivo de gastos (local, solo lectura). |
 
 ## Solución de problemas
 
@@ -183,7 +192,7 @@ npm install
 npm test            # pruebas unitarias
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 18 herramientas por stdio
+npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 19 herramientas por stdio
 npm run build:mcpb  # opcional: genera build/expenditures-control.mcpb
 ```
 

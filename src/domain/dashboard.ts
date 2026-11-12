@@ -37,11 +37,15 @@ export interface DashboardData {
   readonly banks: readonly string[];
   readonly totals: {
     readonly spent: number;
+    /** Whole previous month. */
     readonly prevSpent: number;
+    /** Previous month up to the same day of the month (the fair comparison while the month is still running). */
+    readonly prevSpentToDate: number;
     readonly income: number;
     readonly prevIncome: number;
     readonly uncategorized: { readonly amount: number; readonly count: number };
   };
+  /** Each category's `prevSpent` is measured up to the same day of the previous month while the month is running. */
   readonly categories: readonly DashboardCategory[];
   readonly daily: readonly { date: string; total: number; count: number }[];
   readonly prevDaily: readonly { day: number; total: number }[];
@@ -152,7 +156,9 @@ export function dashboardData(db: DatabaseSync, month: string, options: Dashboar
   const prevMonth = shiftMonth(month, -1);
   const scope = monthScope(month, bank);
   const prev = monthScope(prevMonth, bank);
-  const cats = categories(db, month, scope, prev);
+  const running = options.today.slice(0, 7) === month;
+  const prevToDate: Scope = running ? { ...prev, to: `${prevMonth}-${String(Number(options.today.slice(8, 10)) + 1).padStart(2, "0")}` } : prev;
+  const cats = categories(db, month, scope, prevToDate);
   const sin = cats.find((c) => c.category === "sin_categoria")!;
   const list = movements(db, scope);
   const banks = (db.prepare("SELECT DISTINCT bank FROM movements ORDER BY bank").all() as { bank: string }[]).map((r) => r.bank);
@@ -165,6 +171,7 @@ export function dashboardData(db: DatabaseSync, month: string, options: Dashboar
     totals: {
       spent: total(db, scope, "gasto"),
       prevSpent: total(db, prev, "gasto"),
+      prevSpentToDate: total(db, prevToDate, "gasto"),
       income: total(db, scope, "ingreso"),
       prevIncome: total(db, prev, "ingreso"),
       uncategorized: { amount: sin.spent, count: sin.count },

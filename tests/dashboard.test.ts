@@ -45,6 +45,16 @@ describe("dashboardData", () => {
     expect(d.totals.uncategorized).toEqual({ amount: 30_000, count: 1 });
   });
 
+  it("compares a running month with the same days of the previous month", () => {
+    const d = dashboardData(db, "2026-10", { today: "2026-10-10" });
+    expect(d.totals.prevSpent).toBe(150_000);
+    expect(d.totals.prevSpentToDate).toBe(100_000);
+    expect(d.categories.find((c) => c.category === "suscripcion")!.prevSpent).toBe(0);
+    expect(d.categories.find((c) => c.category === "supermercado")!.prevSpent).toBe(100_000);
+    const past = dashboardData(db, "2026-10", { today: "2026-12-01" });
+    expect(past.totals.prevSpentToDate).toBe(150_000);
+  });
+
   it("breaks spending down by category, with budgets and the previous month", () => {
     setBudget(db, "supermercado", "default", 250_000);
     const d = dashboardData(db, "2026-10", { today: "2026-10-20" });
