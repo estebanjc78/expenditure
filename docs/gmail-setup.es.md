@@ -37,7 +37,7 @@ Los usuarios finales nunca hacen esto. Tú creas un cliente OAuth y lo incluyes 
 4. **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
    - Tipo de aplicación: **Aplicación de escritorio**.
    - Copia el ID de cliente y el secreto.
-5. Pégalos en [src/gmail/bundled-client.ts](../src/gmail/bundled-client.ts) y vuelve a construir (`npm run build`, `npm run build:mcpb`). En clientes de escritorio Google no trata el secreto como confidencial, pero puedes inyectarlo al construir si prefieres no subirlo a git.
+5. Descarga el JSON y guárdalo como `build-secrets/google-client.json` (esa carpeta la ignora git, así el secreto nunca entra al repositorio público). Luego ejecuta `npm run build:mcpb`: el cliente se inyecta en el paquete `.mcpb`, que es la instalación de un clic. (El paquete npm no lo lleva; quien lo use trae su propio cliente, ver abajo.) Para probarlo tú sin reconstruir, guarda también el mismo JSON como `~/.gastos-mcp/google-client.json`.
 
 Para quitar la advertencia y el tope de 100 usuarios más adelante, hay que solicitar la verificación de OAuth de Google, que para lectura de Gmail incluye una evaluación de seguridad CASA que se renueva cada año. Pide cotización y plazos a un evaluador aprobado antes de comprometerte.
 

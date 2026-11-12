@@ -48,3 +48,10 @@ describe("createGmailService", () => {
     expect(svc.status()).toMatchObject({ configured: true, connected: false });
   });
 });
+
+describe("bundled client injection", () => {
+  it("is null in builds that do not inject a client", async () => {
+    const { BUNDLED_CLIENT } = await import("../src/gmail/bundled-client.js");
+    expect(BUNDLED_CLIENT).toBeNull();
+  });
+});

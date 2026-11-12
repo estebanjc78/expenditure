@@ -1,12 +1,27 @@
 // Bundles the server into one JS file and packs it as a .mcpb with the official CLI.
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const stage = resolve(root, "build/mcpb");
 const out = resolve(root, "build/expenditures-control.mcpb");
+
+/** Google OAuth client to ship inside the bundle: env vars, or the JSON from Google Cloud kept out of git. */
+function loadBundledClient() {
+  const id = process.env.GASTOS_BUNDLED_CLIENT_ID?.trim();
+  if (id) return { clientId: id, clientSecret: process.env.GASTOS_BUNDLED_CLIENT_SECRET?.trim() || undefined };
+  const file = resolve(root, "build-secrets/google-client.json");
+  if (!existsSync(file)) return null;
+  const json = JSON.parse(readFileSync(file, "utf8"));
+  const c = json.installed ?? json.web ?? json;
+  if (!c.client_id) throw new Error("build-secrets/google-client.json has no client_id");
+  return { clientId: c.client_id, clientSecret: c.client_secret };
+}
+
+const bundledClient = loadBundledClient();
+console.log(bundledClient ? "Including the bundled Google client." : "No bundled Google client: Gmail sync will need the user's own (see docs/gmail-setup.md).");
 
 rmSync(resolve(root, "build"), { recursive: true, force: true });
 mkdirSync(resolve(stage, "server"), { recursive: true });
@@ -22,6 +37,7 @@ await build({
   // some dependencies (exceljs) are CommonJS and call require() at runtime
   banner: { js: 'import { createRequire as __cr } from "node:module"; const require = __cr(import.meta.url);' },
   legalComments: "none",
+  define: { __BUNDLED_CLIENT__: bundledClient ? JSON.stringify(bundledClient) : "undefined" },
 });
 cpSync(resolve(root, "manifest.json"), resolve(stage, "manifest.json"));
 

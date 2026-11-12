@@ -37,7 +37,7 @@ End users never do this. You create one OAuth client and ship it in the package.
 4. **APIs & Services > Credentials > Create credentials > OAuth client ID**:
    - Application type: **Desktop app**.
    - Copy the client ID and client secret.
-5. Paste them into [src/gmail/bundled-client.ts](../src/gmail/bundled-client.ts), then rebuild (`npm run build`, `npm run build:mcpb`). For Desktop-app clients Google does not treat the secret as confidential, but you can inject it at build time if you prefer not to commit it.
+5. Download the JSON and save it as `build-secrets/google-client.json` (that folder is gitignored, so the secret never enters the public repo). Then run `npm run build:mcpb`: the client is injected into the `.mcpb` bundle, which is the one-click install. (The npm package does not carry it; npm users bring their own client, see below.) To try it yourself without rebuilding, also save the same JSON as `~/.gastos-mcp/google-client.json`.
 
 To remove the warning and the 100-user cap later, apply for Google's OAuth verification, which for Gmail read access includes a CASA security assessment renewed every year. Ask an approved assessor for a quote and timeline before committing.
 

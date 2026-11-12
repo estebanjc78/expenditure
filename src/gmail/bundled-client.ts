@@ -1,12 +1,15 @@
 import type { GoogleClientConfig } from "./oauth.js";
 
+/** Replaced at bundle time by scripts/build-mcpb.mjs; undefined in plain tsc/vitest builds. */
+declare const __BUNDLED_CLIENT__: GoogleClientConfig | undefined;
+
 /**
- * Google OAuth client shipped with this package, so end users only click "Allow" and never touch Google Cloud.
+ * Google OAuth client shipped inside the .mcpb bundle, so end users only click "Allow" and never touch Google Cloud.
  *
- * The maintainer creates ONE "Desktop app" OAuth client once (see docs/gmail-setup.md, "For the maintainer") and
- * pastes its values here before building the npm package / .mcpb bundle. For Desktop-app clients Google does not
- * treat the client secret as confidential, but keep it out of git history if you prefer: inject it at build time.
- *
- * While this is null, users can still bring their own client (google-client.json or GASTOS_GOOGLE_CLIENT_ID).
+ * It is NOT written in the source: `npm run build:mcpb` reads it from `build-secrets/google-client.json` (gitignored,
+ * the JSON downloaded from Google Cloud) or from GASTOS_BUNDLED_CLIENT_ID / GASTOS_BUNDLED_CLIENT_SECRET, and injects it.
+ * See docs/gmail-setup.md, "For the maintainer". Without it this is null and users fall back to their own client
+ * (google-client.json or GASTOS_GOOGLE_CLIENT_ID) or to Claude's own Gmail connector.
  */
-export const BUNDLED_CLIENT: GoogleClientConfig | null = null;
+export const BUNDLED_CLIENT: GoogleClientConfig | null =
+  typeof __BUNDLED_CLIENT__ === "undefined" ? null : __BUNDLED_CLIENT__;
