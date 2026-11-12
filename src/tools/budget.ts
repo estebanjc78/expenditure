@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { setBudget } from "../domain/budget.js";
 import { budgetOverview } from "../domain/budget-overview.js";
-import { setMerchantRule } from "../domain/classify.js";
+import { setMerchantRule, setMerchantRules } from "../domain/classify.js";
 import { importFixedExpenses, pendingFixed } from "../domain/fixed.js";
 import { MONTH_RE } from "../domain/month.js";
 import { run } from "./helpers.js";
@@ -21,6 +21,25 @@ export function registerBudgetTools(server: McpServer, db: DatabaseSync): void {
       inputSchema: { merchant: z.string().trim().min(1, "merchant is required"), category },
     },
     ({ merchant, category: c }) => run(() => setMerchantRule(db, merchant, c)),
+  );
+
+  server.registerTool(
+    "clasificar_comercios",
+    {
+      description:
+        "Clasifica VARIOS comercios de una vez (máx. 200) y reclasifica sus gastos. Úsala con la lista uncategorizedMerchants de sincronizar_gmail: " +
+        "clasifica TÚ cada comercio con tu criterio a partir de su nombre (ej. una cadena de supermercados → supermercado; Netflix o Spotify → suscripcion; " +
+        "arriendo o servicios → fijo; lo demás → otro) y, si un nombre no lo reconoces, búscalo en la web. " +
+        "No preguntes comercio por comercio: después de aplicar, muéstrale al usuario la lista agrupada y pregunta solo por los que te dejaron dudas o los que quiera corregir " +
+        "(se corrigen con clasificar_comercio).",
+      inputSchema: {
+        classifications: z
+          .array(z.object({ merchant: z.string().trim().min(1, "merchant is required"), category }))
+          .min(1)
+          .max(200),
+      },
+    },
+    ({ classifications }) => run(() => setMerchantRules(db, classifications)),
   );
 
   server.registerTool(

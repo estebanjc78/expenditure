@@ -31,7 +31,12 @@
     { "name": "listar_remitentes", "description": "List authorized bank senders and the Gmail query to use." },
     { "name": "agregar_remitente", "description": "Add a bank sender address." },
     { "name": "quitar_remitente", "description": "Remove a bank sender address." },
-    { "name": "filtrar_no_registrados", "description": "From a list of message ids, return those not registered yet." }
+    { "name": "filtrar_no_registrados", "description": "From a list of message ids, return those not registered yet." },
+    { "name": "clasificar_comercios", "description": "Classify many merchants at once and reclassify their expenses." },
+    { "name": "conectar_gmail", "description": "Connect Gmail (read-only) with a one-time Allow click." },
+    { "name": "estado_gmail", "description": "Show whether Gmail is configured and connected." },
+    { "name": "desconectar_gmail", "description": "Delete the Gmail token stored on this computer." },
+    { "name": "sincronizar_gmail", "description": "Read bank mails for a date range directly from Gmail and register the movements." }
   ],
   "compatibility": {
     "platforms": ["darwin", "win32", "linux"],

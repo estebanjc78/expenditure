@@ -1,4 +1,4 @@
-// Smoke test: npm pack -> install the tarball in a temp dir -> run its bin over stdio -> expect 13 tools.
+// Smoke test: npm pack -> install the tarball in a temp dir -> run its bin over stdio -> expect 18 tools.
 // npm always ships root README* files, so README.es.md is allowed alongside README.md.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, readdirSync } from "node:fs";
@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-const EXPECTED_TOOLS = 13;
+const EXPECTED_TOOLS = 18;
 const root = resolve(import.meta.dirname, "..");
 const work = mkdtempSync(join(tmpdir(), "expenditures-smoke-"));
 

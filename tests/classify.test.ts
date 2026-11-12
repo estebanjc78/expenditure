@@ -94,3 +94,32 @@ describe("clasificación de comercios", () => {
     expect(addMovement(db, { ...base, sourceId: "a1" }).needsClassification).toBe(false);
   });
 });
+
+describe("setMerchantRules", () => {
+  it("applies several rules and reclassifies each merchant's gastos", async () => {
+    const { openDb } = await import("../src/db.js");
+    const { addMovement } = await import("../src/domain/movements.js");
+    const { setMerchantRules } = await import("../src/domain/classify.js");
+    const db = openDb(":memory:");
+    const base = { date: "2026-11-01", bank: "bbva", kind: "gasto" as const };
+    addMovement(db, { ...base, sourceId: "a", amount: 1000, merchant: "Supertienda olimp" });
+    addMovement(db, { ...base, sourceId: "b", amount: 2000, merchant: "Netflix" });
+    addMovement(db, { ...base, sourceId: "c", amount: 3000, merchant: "Netflix" });
+
+    const out = setMerchantRules(db, [
+      { merchant: "Supertienda olimp", category: "supermercado" },
+      { merchant: "netflix", category: "suscripcion" },
+    ]);
+    expect(out.updated).toBe(3);
+    expect(out.results).toEqual([
+      { merchant: "Supertienda olimp", updated: 1 },
+      { merchant: "netflix", updated: 2 },
+    ]);
+    const cats = db.prepare("SELECT source_id, category FROM movements ORDER BY source_id").all();
+    expect(cats).toEqual([
+      { source_id: "a", category: "supermercado" },
+      { source_id: "b", category: "suscripcion" },
+      { source_id: "c", category: "suscripcion" },
+    ]);
+  });
+});

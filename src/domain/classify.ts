@@ -51,3 +51,17 @@ export function setMerchantRule(
     throw err;
   }
 }
+
+export interface MerchantRuleInput {
+  readonly merchant: string;
+  readonly category: Category;
+}
+
+/** Applies several merchant rules at once; each rule reclassifies that merchant's gastos. */
+export function setMerchantRules(
+  db: DatabaseSync,
+  rules: readonly MerchantRuleInput[],
+): { updated: number; results: { merchant: string; updated: number }[] } {
+  const results = rules.map((r) => ({ merchant: r.merchant, ...setMerchantRule(db, r.merchant, r.category) }));
+  return { updated: results.reduce((sum, r) => sum + r.updated, 0), results };
+}

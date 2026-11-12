@@ -22,14 +22,15 @@ async function connect() {
 const mov = { date: "2026-10-05", amount: 50000, merchant: "Exito", bank: "bbva", kind: "gasto" };
 
 describe("servidor MCP", () => {
-  it("lista las 13 herramientas", async () => {
+  it("lista las 18 herramientas", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
-      "agregar_remitente", "clasificar_comercio", "consultar_movimientos", "estado_presupuesto",
+      "agregar_remitente", "clasificar_comercio", "clasificar_comercios", "conectar_gmail",
+      "consultar_movimientos", "desconectar_gmail", "estado_gmail", "estado_presupuesto",
       "fijar_presupuesto", "filtrar_no_registrados", "gastos_fijos_pendientes", "importar_gastos_fijos",
       "listar_remitentes", "quitar_remitente", "registrar_movimiento", "registrar_movimientos",
-      "ultimo_movimiento_registrado",
+      "sincronizar_gmail", "ultimo_movimiento_registrado",
     ]);
   });
 
