@@ -86,6 +86,7 @@ td.num { white-space: nowrap; }
 .legend i { width: 16px; height: 2px; border-radius: 2px; display: inline-block; }
 .legend .a i { background: var(--accent); } .legend .b i { background: var(--series-b); }
 .chart-host { width: 100%; min-height: 230px; position: relative; }
+.chart-note { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); max-width: 80ch; }
 .linkish { border: 0; background: transparent; color: var(--ink-2); font-size: 13px; padding: 6px 10px; border-radius: 10px; }
 .linkish:hover { background: var(--hover); color: var(--ink); }
 

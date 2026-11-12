@@ -179,7 +179,8 @@ The tool names are in Spanish.
 - No tool to edit or delete a movement yet.
 - Gmail sync uses a Google app shipped with the package (the maintainer sets it up once, see [docs/gmail-setup.md](docs/gmail-setup.md)). Until Google verifies it, Google shows an "unverified app" screen and allows 100 users in total. It has been tested against simulated Google responses and real BBVA email formats, not yet end to end against Google's servers.
 - BBVA Colombia is built in. **Any other bank is learned from 3 or 4 of your own notices** (see [docs/learn-a-bank.md](docs/learn-a-bank.md)): Claude writes the reading rules, the server tests them against the examples you confirmed and stores them in your database. Tested with made-up Argentine and Mexican examples, not yet with real mails of those banks. One currency per database.
-- Foreign-currency transfers are not registered automatically; they are reported for your review.
+- Bank taxes and fees that no email carries (4x1000, VAT, commissions, card maintenance fees) are not reflected; the dashboard says so under its chart, so totals can differ from the bank statement.
+- Foreign-currency transfers other than USD-to-COP conversions are not registered automatically; they are reported for your review.
 - The server trusts the `From` address Gmail reports and relies on Gmail's own spoofing protection; it does not verify DKIM itself yet. Text taken from emails (merchant, subject) is cleaned and length-limited before it reaches the model, but treat it as data.
 - Amounts are integer COP only.
 

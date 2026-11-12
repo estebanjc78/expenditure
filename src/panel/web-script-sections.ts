@@ -41,7 +41,8 @@ function buildShell() {
     h("div", { class: "hero-top" }, [h("div", null, [ui.heroLabel, ui.heroValue]), h("div", { class: "hero-side" }, [ui.heroDelta, ui.heroNote])]),
     h("div", { class: "hero-chart" }, [
       h("div", { class: "card-head" }, [h("div", null, [h("h2", { text: "Ritmo del mes" }), h("p", { class: "sub", text: "Gasto acumulado, día a día" })]), h("div", { class: "tools" }, [h("div", { class: "legend" }, [ui.legendA, ui.legendB]), ui.lineToggle])]),
-      ui.lineHost
+      ui.lineHost,
+      h("p", { class: "chart-note", text: "Los totales no incluyen impuestos ni cargos bancarios (4x1000, IVA, comisiones y cuotas de manejo), que solo aparecen en el extracto del banco: pueden diferir de él." })
     ])
   ]);
 

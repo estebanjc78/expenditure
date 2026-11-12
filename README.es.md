@@ -181,7 +181,8 @@ Los nombres de las herramientas están en español.
 - Todavía no hay herramienta para editar o borrar un movimiento.
 - La sincronización con Gmail usa una app de Google incluida en el paquete (el mantenedor la configura una sola vez, ver [docs/gmail-setup.es.md](docs/gmail-setup.es.md)). Hasta que Google la verifique, muestra una pantalla de "app no verificada" y permite 100 usuarios en total. Se probó con respuestas de Google simuladas y con formatos reales de correos de BBVA, pero todavía no de punta a punta contra los servidores de Google.
 - BBVA Colombia viene incluido. **Cualquier otro banco se aprende con 3 o 4 avisos tuyos** (ver [docs/learn-a-bank.es.md](docs/learn-a-bank.es.md)): Claude redacta las reglas de lectura, el servidor las prueba contra los ejemplos que confirmaste y las guarda en tu base de datos. Probado con ejemplos inventados de Argentina y México, todavía no con correos reales de esos bancos. Una moneda por base de datos.
-- Las transferencias en moneda extranjera no se registran solas; se reportan para tu revisión.
+- Los impuestos y cargos bancarios que ningún correo trae (4x1000, IVA, comisiones, cuotas de manejo) no se reflejan; el panel lo aclara al pie del gráfico, así que los totales pueden diferir del extracto del banco.
+- Las transferencias en moneda extranjera distintas de una conversión USD a COP no se registran solas; se reportan para tu revisión.
 - El servidor confía en la dirección `From` que reporta Gmail y se apoya en la protección anti-suplantación de Gmail; todavía no verifica DKIM por su cuenta. El texto tomado de los correos (comercio, asunto) se limpia y se acota antes de llegar al modelo, pero trátalo como datos.
 - Los montos son solo COP enteros.
 
