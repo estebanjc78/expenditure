@@ -96,7 +96,7 @@ describe("syncMail", () => {
   });
 
   it("flags foreign-currency transfers for review instead of registering them", async () => {
-    const body = "Detalles de la operación Tipo de transferencia: Propia - Entre cuentas Divisa: USD A COP Valor: USD 4,690.00 Fecha: 2026-11-09 Hora: 10:37 Cuenta de origen: *1111";
+    const body = "Detalles de la operación Tipo de transferencia: Propia - Entre cuentas Divisa: EUR A USD Valor: EUR 4,690.00 Fecha: 2026-11-09 Hora: 10:37 Cuenta de origen: *1111";
     const summary = await syncMail(db, new FakeSource([mail("t1", "Transferencia exitosa", body)]), { since: "2026-11-01" });
     expect(summary.registered).toBe(0);
     expect(summary.review).toHaveLength(1);

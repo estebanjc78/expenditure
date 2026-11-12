@@ -64,6 +64,10 @@ function parseOwnTransfer(section: string): ParseResult {
   const f = readFields(section, OWN_TRANSFER_LABELS, true);
   const currency = f.get("divisa") ?? "";
   const money = parseMoney(f.get("valor") ?? "");
+  // Money earned abroad and converted to pesos ("USD A COP") is income, counted at the pesos actually received.
+  if (/^[A-Z]{3}\s+A\s+COP$/i.test(currency.trim()) && /propia/i.test(f.get("tipo de transferencia") ?? "")) {
+    return movement(isoDate(f.get("fecha")), copAmount(f.get("total de divisas enviado")), "Ingreso USD→COP", "ingreso");
+  }
   if ((currency && currency.toUpperCase() !== "COP") || (money && money.currency !== "COP")) {
     const code = (currency || money?.currency || "").toUpperCase();
     return { status: "review", reason: `Transferencia en divisa extranjera (${CURRENCY_CODE_RE.test(code) ? code : "desconocida"}): no se registra sin confirmar con el usuario` };

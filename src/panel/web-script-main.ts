@@ -5,6 +5,7 @@ function filteredMovements() {
   var rows = state.data.movements.filter(function (m) {
     if (f.kind === "gasto" && m.kind !== "gasto") return false;
     if (f.kind === "ingreso" && m.kind !== "ingreso") return false;
+    if (f.kind === "transferencia_propia" && m.kind !== "transferencia_propia") return false;
     if (f.category && (m.kind !== "gasto" || (m.category || "sin_categoria") !== f.category)) return false;
     if (f.day && Number(m.date.slice(8, 10)) !== f.day) return false;
     if (f.merchant && plain(m.merchant) !== f.merchant.key) return false;
@@ -43,7 +44,7 @@ function renderChips() {
 function renderMovements() {
   var rows = filteredMovements(), shown = rows.slice(0, state.limit);
   clear(ui.kindSeg);
-  [["all", "Todos"], ["gasto", "Gastos"], ["ingreso", "Ingresos"]].forEach(function (k) {
+  [["all", "Todos"], ["gasto", "Gastos"], ["ingreso", "Ingresos"], ["transferencia_propia", "Entre cuentas"]].forEach(function (k) {
     ui.kindSeg.appendChild(h("button", { "aria-pressed": String(state.filters.kind === k[0]), onclick: function () { setFilter({ kind: k[0] }); } }, k[1]));
   });
   renderChips();

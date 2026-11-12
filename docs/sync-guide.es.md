@@ -47,7 +47,7 @@ Las dos últimas filas son avisos compactos: registrar solo con los campos que m
 
 ### Casos especiales: preguntar, no registrar en silencio
 
-- **Transferencias entre cuentas propias en moneda extranjera** (por ejemplo USD a COP): no registrar sin preguntar al usuario.
+- **Conversiones USD a COP entre cuentas propias** (por ejemplo desde la cuenta de BBVA Panamá) son el ingreso del usuario ganado en dólares: registrarlas como `ingreso` por los pesos recibidos ("Total de divisas enviado"). Otras transferencias en moneda extranjera que no se puedan valorar en pesos: no registrar sin preguntar al usuario.
 - **Cobros sospechosos.** Montos muy pequeños (menos de 1.000 COP), cobros idénticos repetidos en pocos minutos o un cobro justo después de un pago rechazado NO se registran en silencio: listarlos al usuario y preguntar (pueden ser validaciones de tarjeta o reintentos).
 - **Moneda ambigua.** Un monto como "$100.00" puede ser USD o COP: preguntar.
 - **Comercios con patrón `*`** (por ejemplo `Dlo*microsoft*sto`) son comercios distintos; cada uno se clasifica una vez.

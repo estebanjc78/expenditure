@@ -48,7 +48,7 @@ For received Bre-B, `sourceId` = the Gmail message id (the "Codigo de operacion"
 
 ### Special cases: ask, do not register silently
 
-- **Foreign-currency own-account transfers** (for example USD to COP): do not register without asking the user.
+- **USD-to-COP conversions between own accounts** (for example from the BBVA Panama account) are the user's income earned in dollars: register them as `ingreso` for the pesos received ("Total de divisas enviado"). Other foreign-currency transfers that cannot be valued in pesos: do not register without asking the user.
 - **Suspicious charges.** Very small amounts (under 1,000 COP), identical charges repeated within minutes, or a charge right after a rejected payment are NOT registered silently. List them to the user and ask: they may be card validations or retries.
 - **Ambiguous currency.** An amount like "$100.00" can be USD or COP: ask.
 - **Merchants with `*` patterns** (for example `Dlo*microsoft*sto`) are separate merchants; each one needs to be classified once.

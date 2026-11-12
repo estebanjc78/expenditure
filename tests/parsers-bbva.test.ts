@@ -132,10 +132,17 @@ describe("parseBbva", () => {
     });
   });
 
-  it("asks for review when the transfer is in a foreign currency", () => {
+  it("counts a USD-to-COP conversion between own accounts as income, in the pesos received", () => {
     const r = parseBbva({ subject: "Transferencia exitosa", text: ownUsdText, receivedAt: RECEIVED });
+    expect(r).toEqual({
+      status: "movement",
+      movement: { date: "2026-11-09", amount: 14665630, merchant: "Ingreso USD→COP", kind: "ingreso" },
+    });
+  });
+
+  it("still asks for review for other foreign-currency transfers it cannot value in pesos", () => {
+    const r = parseBbva({ subject: "Transferencia exitosa", text: ownUsdText.replace("USD A COP", "EUR A USD"), receivedAt: RECEIVED });
     expect(r.status).toBe("review");
-    if (r.status === "review") expect(r.reason).toMatch(/USD/);
   });
 
   it("registers a transfer to a third party on 'va en camino' and uses Colombian local date", () => {
