@@ -83,7 +83,8 @@ Para Bre-B recibido, `sourceId` = id del mensaje de Gmail (el "Código de operac
 ```json
 {
   "movements": [
-    { "sourceId": "19a1b2c3d4e5f601", "date": "2026-11-10", "kind": "gasto", "merchant": "Supermercado Ejemplo", "amount": 134588, "bank": "bbva" }
+    { "sourceId": "19a1b2c3d4e5f601", "date": "2026-11-10", "kind": "gasto", "merchant": "Supermercado Ejemplo", "amount": 134588, "bank": "bbva" },
+    { "sourceId": "19a1b2c3d4e5f602", "date": "2026-11-10", "kind": "ingreso", "merchant": "Persona Ejemplo", "amount": 1595000, "bank": "bbva" }
   ]
 }
 ```

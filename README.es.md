@@ -58,7 +58,7 @@ El servidor no tiene modelo de lenguaje ni acceso a la red por su cuenta. Claude
 
 ## Requisitos
 
-- Node.js 22.5 o superior (el servidor usa `node:sqlite`, incluido en Node). Verifica con `node --version`.
+- Node.js 22.13 o superior (el servidor usa `node:sqlite`, incluido en Node). Verifica con `node --version`.
 - Un cliente MCP: Claude Code, Claude Desktop u otro que ejecute servidores stdio.
 - Para sincronizar correo: Claude con un conector de Gmail.
 
@@ -98,7 +98,7 @@ Agrega esto a la configuración MCP del cliente (en Claude Desktop: Ajustes, Des
 }
 ```
 
-`env` es opcional. El Node que use el cliente debe ser 22.5 o superior; si tu cliente usa otro Node, pon en `command` la ruta completa de un `node` reciente y en `args` la ruta a `dist/index.js`.
+`env` es opcional. El Node que use el cliente debe ser 22.13 o superior; si tu cliente usa otro Node, pon en `command` la ruta completa de un `node` reciente y en `args` la ruta a `dist/index.js`.
 
 ## Dónde viven los datos
 
@@ -148,7 +148,7 @@ Los nombres de las herramientas están en español.
 
 ## Solución de problemas
 
-- **"node:sqlite" no se encuentra / el servidor se cierra al iniciar:** tu Node es anterior a 22.5. Ejecuta `node --version` y actualiza. Con un cliente gráfico, el Node que lanza puede ser distinto al de tu terminal; usa la opción de ruta completa de la instalación C.
+- **"node:sqlite" no se encuentra / el servidor se cierra al iniciar:** tu Node es anterior a 22.13. Ejecuta `node --version` y actualiza. Con un cliente gráfico, el Node que lanza puede ser distinto al de tu terminal; usa la opción de ruta completa de la instalación C.
 - **No aparecen las herramientas:** reinicia el cliente tras agregar el servidor. En Claude Code ejecuta `claude mcp list` y confirma que `gastos` está conectado.
 - **`npx` tarda la primera vez:** descarga el paquete una vez y luego lo deja en caché.
 - **Los datos no están donde espero:** revisa `GASTOS_DB` en el entorno del servidor; sin ella el archivo es `~/.gastos-mcp/gastos.db`.

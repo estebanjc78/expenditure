@@ -21,7 +21,7 @@
     "build:mcpb": "node scripts/build-mcpb.mjs"
   },
   "engines": {
-    "node": ">=22.5"
+    "node": ">=22.13"
   },
   "repository": {
     "type": "git",

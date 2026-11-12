@@ -58,7 +58,7 @@ The server has no language model and no network access of its own. Claude (the c
 
 ## Requirements
 
-- Node.js 22.5 or newer (the server uses the built-in `node:sqlite`). Check with `node --version`.
+- Node.js 22.13 or newer (the server uses the built-in `node:sqlite`). Check with `node --version`.
 - An MCP client: Claude Code, Claude Desktop, or any client that runs stdio servers.
 - For email sync: Claude with a Gmail connector.
 
@@ -98,7 +98,7 @@ Add this to the client's MCP config (for Claude Desktop: Settings, Developer, Ed
 }
 ```
 
-`env` is optional. The Node used by the client must be 22.5 or newer; if your client uses a different Node, set `command` to the full path of a recent `node` and `args` to the path of `dist/index.js`.
+`env` is optional. The Node used by the client must be 22.13 or newer; if your client uses a different Node, set `command` to the full path of a recent `node` and `args` to the path of `dist/index.js`.
 
 ## Where the data lives
 
@@ -148,7 +148,7 @@ The tool names are in Spanish.
 
 ## Troubleshooting
 
-- **"node:sqlite" not found / server exits at start:** your Node is older than 22.5. Run `node --version` and upgrade. With a GUI client, the Node it launches may differ from your shell's; use the full-path option in install C.
+- **"node:sqlite" not found / server exits at start:** your Node is older than 22.13. Run `node --version` and upgrade. With a GUI client, the Node it launches may differ from your shell's; use the full-path option in install C.
 - **The tools do not appear:** restart the client after adding the server. In Claude Code run `claude mcp list` and check that `gastos` is connected.
 - **`npx` is slow the first time:** it downloads the package once, then caches it.
 - **Data is not where I expect:** check `GASTOS_DB` in the server's env; without it the file is `~/.gastos-mcp/gastos.db`.
