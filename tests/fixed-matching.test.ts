@@ -56,3 +56,49 @@ describe("unlistedRecurring", () => {
     ]);
   });
 });
+
+describe("PSE payments are matched to fixed expenses by amount (the payee is not in the notice)", () => {
+  function setup(items: [string, number, string | null][], payments: [string, number, string?][]) {
+    const db = openDb(":memory:");
+    for (const [name, amount, kw] of items) db.prepare("INSERT INTO fixed_expenses (name, amount, merchant) VALUES (?, ?, ?)").run(name, amount, kw);
+    payments.forEach(([merchant, amount, date], i) => addMovement(db, { sourceId: `p${i}`, date: date ?? "2026-10-07", amount, merchant, bank: "bbva", kind: "gasto" }));
+    return pendingFixed(db, "2026-10");
+  }
+
+  it("marks a fixed expense as paid by amount, flagged as such, within 10%", () => {
+    const s = setup([["Colegio", 3259029, "colegio"]], [["PSE · PAGOS ELECTRONI", 3259029]]);
+    expect(s[0]).toEqual({ name: "Colegio", expected: 3259029, paid: true, paidAmount: 3259029, matchedBy: "amount" });
+    const near = setup([["Codensa", 400000, "codensa"]], [["PSE · PAGOS ELECTRONI", 372000]]);
+    expect(near[0]).toMatchObject({ paid: true, matchedBy: "amount", paidAmount: 372000 });
+  });
+
+  it("does not match when the amount is too different or the payment is not a PSE payment", () => {
+    expect(setup([["Codensa", 400000, "codensa"]], [["PSE · PAGOS ELECTRONI", 200000]])[0]).toEqual({ name: "Codensa", expected: 400000, paid: false });
+    expect(setup([["Codensa", 400000, "codensa"]], [["Tienda Cualquiera", 400000]])[0]).toEqual({ name: "Codensa", expected: 400000, paid: false });
+  });
+
+  it("uses each payment once, giving it to the closest expected amount", () => {
+    const s = setup(
+      [["Movistar", 80000, "movistar"], ["Fenosa", 82000, "fenosa"]],
+      [["PSE · PAGOS ELECTRONI", 81900]],
+    );
+    expect(s.find((x) => x.name === "Fenosa")).toMatchObject({ paid: true, matchedBy: "amount" });
+    expect(s.find((x) => x.name === "Movistar")).toEqual({ name: "Movistar", expected: 80000, paid: false });
+  });
+
+  it("prefers a payment named after the concept over an amount match", () => {
+    const s = setup([["Netflix", 44000, "netflix"]], [["Netflix", 44000], ["PSE · PAGOS ELECTRONI", 44000]]);
+    expect(s[0]).toEqual({ name: "Netflix", expected: 44000, paid: true, paidAmount: 44000 });
+  });
+
+  it("does not report a PSE payment that matched a fixed expense as an unlisted recurring charge", async () => {
+    const { unlistedRecurring } = await import("../src/domain/fixed.js");
+    const { setMerchantRule } = await import("../src/domain/classify.js");
+    const db = openDb(":memory:");
+    setMerchantRule(db, "PSE · PAGOS ELECTRONI", "fijo");
+    db.prepare("INSERT INTO fixed_expenses (name, amount, merchant) VALUES (?, ?, ?)").run("Colegio", 3259029, "colegio");
+    addMovement(db, { sourceId: "a", date: "2026-10-07", amount: 3259029, merchant: "PSE · PAGOS ELECTRONI", bank: "bbva", kind: "gasto" });
+    addMovement(db, { sourceId: "b", date: "2026-10-09", amount: 777000, merchant: "PSE · PAGOS ELECTRONI", bank: "bbva", kind: "gasto" });
+    expect(unlistedRecurring(db, "2026-10")).toEqual([{ merchant: "PSE · PAGOS ELECTRONI", category: "fijo", count: 1, total: 777000 }]);
+  });
+});

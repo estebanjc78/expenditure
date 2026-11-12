@@ -11,6 +11,8 @@ const ON_THE_WAY_START = "Debitamos los";
 const ON_THE_WAY_MID = " de tu cuenta y los enviamos a ";
 const ON_THE_WAY_END = ". Conoce";
 const MAX_MERCHANT_CHARS = 80;
+const SUMMARY_LABELS = ["Tipo de transacción", "Cuenta terminada en", "Fecha de la operación", "Establecimiento", "Valor", "Hora"];
+const SUMMARY_END_RE = /Recuerda que/i;
 const CURRENCY_CODE_RE = /^[A-Z]{3}(?: A [A-Z]{3})?$/;
 
 const PURCHASE_LABELS = ["Tarjeta terminada en", "Fecha de la operación", "Establecimiento", "Valor", "Hora"];
@@ -108,6 +110,21 @@ function parseOnTheWay(text: string, receivedAt: number): ParseResult | null {
   return movement(bogotaDate(receivedAt), copAmount(amount), merchant, "gasto");
 }
 
+/**
+ * "BBVA Net - Pagos PSE" summaries have no "Detalles de la operación" heading, and the payee is hidden behind the
+ * PSE service ("PAGOS ELECTRONI"): the merchant keeps a "PSE · " prefix so these payments can be told apart.
+ */
+function parseTransactionSummary(text: string): ParseResult | null {
+  const start = /Tipo de transacci[oó]n\s*:/i.exec(text);
+  if (!start) return null;
+  const rest = text.slice(start.index);
+  const end = SUMMARY_END_RE.exec(rest);
+  const f = readFields(end ? rest.slice(0, end.index) : rest, SUMMARY_LABELS, true);
+  if (!/\bPSE\b/i.test(f.get("tipo de transacción") ?? "")) return UNRECOGNIZED;
+  const payee = f.get("establecimiento");
+  return movement(isoDate(f.get("fecha de la operación")), copAmount(f.get("valor")), payee ? `PSE · ${payee}` : undefined, "gasto");
+}
+
 /** Parser for BBVA Colombia transaction notices (purchase, received money, transfers). */
 export function parseBbva({ subject, text, receivedAt }: ParserInput): ParseResult {
   if (/no exitosa|rechazad/i.test(subject)) return { status: "skip", reason: "Operación no exitosa o rechazada" };
@@ -118,6 +135,9 @@ export function parseBbva({ subject, text, receivedAt }: ParserInput): ParseResu
 
   const onTheWay = parseOnTheWay(normalized, receivedAt);
   if (onTheWay) return onTheWay;
+
+  const summary = parseTransactionSummary(normalized);
+  if (summary) return summary;
 
   const section = detailSection(normalized);
   if (section === null) return UNRECOGNIZED;

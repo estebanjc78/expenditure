@@ -11,6 +11,8 @@ export interface FixedStatus {
   expected: number;
   paid: boolean;
   paidAmount?: number;
+  /** Set to "amount" when a PSE payment was matched only by its amount (the payee is not in the notice). */
+  matchedBy?: "amount";
 }
 
 interface FixedRow {
@@ -117,23 +119,63 @@ function matchesKeyword(merchant: string, keyword: string): boolean {
   return false;
 }
 
-export function pendingFixed(db: DatabaseSync, month: string): FixedStatus[] {
-  assertMonth(month);
-  const fixed = db
-    .prepare("SELECT name, amount, merchant FROM fixed_expenses ORDER BY id")
-    .all() as unknown as FixedRow[];
-  const payments = (
+/** PSE notices hide the payee, so those payments can only be matched to a fixed expense by amount. */
+const PSE_PREFIX = "pse ";
+const AMOUNT_TOLERANCE = 0.1;
+
+interface Payment {
+  readonly id: number;
+  readonly merchant: string;
+  readonly amount: number;
+}
+
+function isPse(p: Payment): boolean {
+  return wordsOf(p.merchant).join(" ").startsWith(PSE_PREFIX);
+}
+
+function monthPayments(db: DatabaseSync, month: string): Payment[] {
+  return (
     db
-      .prepare("SELECT merchant, amount FROM movements WHERE kind = 'gasto' AND substr(date, 1, 7) = ?")
-      .all(month) as { merchant: string; amount: number }[]
-  ).map((p) => ({ merchant: normalizeMerchant(p.merchant), amount: p.amount }));
-  return fixed.map((f) => {
+      .prepare("SELECT id, merchant, amount FROM movements WHERE kind = 'gasto' AND substr(date, 1, 7) = ?")
+      .all(month) as { id: number; merchant: string; amount: number }[]
+  ).map((p) => ({ id: Number(p.id), merchant: normalizeMerchant(p.merchant), amount: Number(p.amount) }));
+}
+
+/**
+ * Pairs each fixed expense with what was paid in the month: first by merchant name, then, for the ones still
+ * unpaid, by amount against unclaimed PSE payments (within 10%, closest first, each payment used once).
+ */
+function reconcile(db: DatabaseSync, month: string): { statuses: FixedStatus[]; claimed: Set<number> } {
+  assertMonth(month);
+  const fixed = db.prepare("SELECT name, amount, merchant FROM fixed_expenses ORDER BY id").all() as unknown as FixedRow[];
+  const payments = monthPayments(db, month);
+  const claimed = new Set<number>();
+  const statuses: FixedStatus[] = fixed.map((f) => {
     const keyword = normalizeMerchant(f.merchant ?? "") || normalizeMerchant(f.name);
     const hits = payments.filter((p) => matchesKeyword(p.merchant, keyword));
+    hits.forEach((p) => claimed.add(p.id));
     return hits.length
-      ? { name: f.name, expected: f.amount, paid: true, paidAmount: hits.reduce((s, p) => s + p.amount, 0) }
+      ? { name: f.name, expected: f.amount, paid: true, paidAmount: hits.reduce((sum, p) => sum + p.amount, 0) }
       : { name: f.name, expected: f.amount, paid: false };
   });
+  const candidates = payments.filter((p) => isPse(p) && !claimed.has(p.id));
+  const unpaid = statuses
+    .map((s, i) => ({ s, i }))
+    .filter((x) => !x.s.paid)
+    .sort((a, b) => b.s.expected - a.s.expected);
+  for (const { s, i } of unpaid) {
+    const close = candidates
+      .filter((p) => !claimed.has(p.id) && Math.abs(p.amount - s.expected) <= s.expected * AMOUNT_TOLERANCE)
+      .sort((a, b) => Math.abs(a.amount - s.expected) - Math.abs(b.amount - s.expected))[0];
+    if (!close) continue;
+    claimed.add(close.id);
+    statuses[i] = { name: s.name, expected: s.expected, paid: true, paidAmount: close.amount, matchedBy: "amount" };
+  }
+  return { statuses, claimed };
+}
+
+export function pendingFixed(db: DatabaseSync, month: string): FixedStatus[] {
+  return reconcile(db, month).statuses;
 }
 
 export interface UnlistedRecurring {
@@ -148,18 +190,16 @@ export interface UnlistedRecurring {
  * list: the recurring charges you are paying but not tracking. Grouped by merchant, biggest first.
  */
 export function unlistedRecurring(db: DatabaseSync, month: string): UnlistedRecurring[] {
-  assertMonth(month);
-  const fixed = db.prepare("SELECT name, merchant FROM fixed_expenses").all() as unknown as { name: string; merchant: string | null }[];
-  const keywords = fixed.map((f) => normalizeMerchant(f.merchant ?? "") || normalizeMerchant(f.name));
+  const { claimed } = reconcile(db, month);
   const rows = db
     .prepare(
-      `SELECT merchant, category, amount FROM movements
+      `SELECT id, merchant, category, amount FROM movements
        WHERE kind = 'gasto' AND category IN ('suscripcion', 'fijo') AND substr(date, 1, 7) = ?`,
     )
-    .all(month) as { merchant: string; category: "suscripcion" | "fijo"; amount: number }[];
+    .all(month) as { id: number; merchant: string; category: "suscripcion" | "fijo"; amount: number }[];
   const groups = new Map<string, UnlistedRecurring>();
   for (const r of rows) {
-    if (keywords.some((k) => matchesKeyword(normalizeMerchant(r.merchant), k))) continue;
+    if (claimed.has(Number(r.id))) continue;
     const key = `${r.category}|${normalizeMerchant(r.merchant)}`;
     const prev = groups.get(key);
     groups.set(key, { merchant: prev?.merchant ?? r.merchant, category: r.category, count: (prev?.count ?? 0) + 1, total: (prev?.total ?? 0) + Number(r.amount) });

@@ -211,3 +211,54 @@ describe("hostile mail content", () => {
     if (r.status === "review") expect(r.reason).not.toMatch(/ignora/);
   });
 });
+
+describe("PSE payments (no 'Detalles de la operación' block, payee hidden behind the PSE service)", () => {
+  const pse = (valor: string, tipo = "Pago PSE", merchant = "PAGOS ELECTRONI") => `| Ref: 10000000 |
+
+| Hola Estamos contigo en cada paso, por eso te informamos el resumen de tu transacción. |
+
+| Tipo de transacción: |
+
+| |
+| ${tipo} |
+
+| Cuenta terminada en: |
+| *1234 |
+
+| Fecha de la operación: |
+| 2026-11-11 |
+
+| Establecimiento: |
+| ${merchant} |
+
+| Valor: |
+| ${valor} |
+
+| Hora: |
+| 08:40 |
+| Recuerda que: Nunca te contactaremos solicitando tus claves o códigos de activación. |`;
+
+  it("parses a PSE payment and keeps PSE visible in the merchant", () => {
+    const r = parseBbva({ subject: "BBVA Net - Pagos PSE", text: pse("$1,600,000.00"), receivedAt: RECEIVED });
+    expect(r).toEqual({
+      status: "movement",
+      movement: { date: "2026-11-11", amount: 1600000, merchant: "PSE · PAGOS ELECTRONI", kind: "gasto" },
+    });
+  });
+
+  it("does not leak the legal footer into the amount or merchant", () => {
+    const r = parseBbva({ subject: "BBVA Net - Pagos PSE", text: pse("$499,000.00"), receivedAt: RECEIVED });
+    expect(r.status === "movement" && r.movement.amount).toBe(499000);
+    expect(JSON.stringify(r)).not.toContain("Recuerda");
+  });
+
+  it("reports other transaction types instead of guessing", () => {
+    const r = parseBbva({ subject: "BBVA Net - Otra cosa", text: pse("$10,000.00", "Retiro cajero"), receivedAt: RECEIVED });
+    expect(r.status).toBe("unrecognized");
+  });
+
+  it("does not return a movement without an amount", () => {
+    const text = pse("$1,000.00").replace(/\| Valor: \|\n\| \$1,000\.00 \|/, "| Valor: |\n| |");
+    expect(parseBbva({ subject: "BBVA Net - Pagos PSE", text, receivedAt: RECEIVED }).status).toBe("unrecognized");
+  });
+});
