@@ -15,6 +15,11 @@ function nextSteps(s: SyncSummary): string[] {
     steps.push("Hay comercios sin categoría: clasifícalos tú con clasificar_comercios (con tu criterio, sin preguntar uno por uno) y luego muéstrale la lista al usuario.");
   }
   if (s.review.length > 0) steps.push("Los ítems de 'review' (p. ej. divisas) NO se registraron: pregúntale al usuario qué hacer con cada uno.");
+  if (s.needsFormat.length > 0) {
+    steps.push(
+      "Hay remitentes SIN reglas de lectura (needsFormat): aprende su formato con configurar_formato_banco pidiéndole al usuario 3 o 4 comprobantes reales (ver formatos_banco) y vuelve a sincronizar.",
+    );
+  }
   if (s.unrecognized.length > 0) steps.push("Los correos 'unrecognized' tienen un formato que el servidor no conoce: avísale al usuario cuáles son (asunto) sin leerlos todos.");
   return steps;
 }

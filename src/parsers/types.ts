@@ -31,3 +31,8 @@ const BOGOTA_OFFSET_MS = 5 * 60 * 60 * 1000; // Colombia is UTC-5 all year (no D
 export function bogotaDate(epochMs: number): string {
   return new Date(epochMs - BOGOTA_OFFSET_MS).toISOString().slice(0, 10);
 }
+
+/** Calendar date (YYYY-MM-DD) of an instant in any IANA time zone, e.g. "America/Argentina/Buenos_Aires". */
+export function localDate(epochMs: number, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(epochMs));
+}

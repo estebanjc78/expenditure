@@ -1,5 +1,6 @@
 import { cleanText } from "../domain/sanitize.js";
 import { parseMoney } from "./amount.js";
+import { readFields } from "./fields.js";
 import { normalizeEmailText } from "./text.js";
 import { bogotaDate } from "./types.js";
 import type { ParsedMovement, ParseResult, ParserInput } from "./types.js";
@@ -22,10 +23,6 @@ const OWN_TRANSFER_LABELS = [
   "Fecha", "Hora", "Cuenta de origen", "Cuenta destino", "Número de comprobante",
 ];
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /** Cuts the "Detalles de la operación" block out of the normalized text. */
 function detailSection(text: string): string | null {
   const start = SECTION_START_RE.exec(text);
@@ -33,27 +30,6 @@ function detailSection(text: string): string | null {
   const rest = text.slice(start.index + start[0].length);
   const end = SECTION_END_RE.exec(rest);
   return end ? rest.slice(0, end.index) : rest;
-}
-
-/**
- * Splits a block into label -> value using the known labels. Longest labels are tried first so
- * "Valor recibido" wins over "Valor". With `requireColon`, a label only counts when followed by ":"
- * (so a merchant called "Hora del cafe" cannot be mistaken for the "Hora" label).
- */
-function readFields(section: string, labels: readonly string[], requireColon: boolean): Map<string, string> {
-  const alternation = [...labels].sort((a, b) => b.length - a.length).map(escapeRegExp).join("|");
-  const re = new RegExp(`(${alternation})${requireColon ? "\\s*:" : "\\s*:?"}`, "gi");
-  const hits = [...section.matchAll(re)];
-  const fields = new Map<string, string>();
-  hits.forEach((hit, i) => {
-    const key = hit[1]!.toLowerCase();
-    if (fields.has(key)) return;
-    const valueStart = hit.index + hit[0].length;
-    const valueEnd = hits[i + 1]?.index ?? section.length;
-    const value = section.slice(valueStart, valueEnd).replace(/^[\s*:]+|[\s*:]+$/g, "");
-    fields.set(key, value);
-  });
-  return fields;
 }
 
 function isoDate(text: string | undefined): string | null {

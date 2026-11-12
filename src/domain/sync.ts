@@ -1,7 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { MailMessage, MailSource } from "../gmail/source.js";
+import { senderAddress } from "../parsers/index.js";
 import { cleanText } from "./sanitize.js";
-import { parserForSender } from "../parsers/index.js";
+import { resolveParser } from "../parsers/resolve.js";
 import type { ParseResult } from "../parsers/types.js";
 import { addMovements, filterUnregistered, MAX_BATCH } from "./batch.js";
 import { gmailSenderQuery, listSenders } from "./senders.js";
@@ -40,6 +41,8 @@ export interface SyncSummary {
   readonly review: readonly { id: string; subject: string; reason: string }[];
   readonly unrecognized: readonly { id: string; subject: string }[];
   readonly unrecognizedCount: number;
+  /** Senders with no reading rules yet: the assistant must learn their format from a few example notices. */
+  readonly needsFormat: readonly { sender: string; count: number; subjects: readonly string[] }[];
   readonly failed: readonly { id: string; error: string }[];
   readonly remaining: number;
   readonly uncategorizedMerchants: readonly UncategorizedMerchant[];
@@ -117,8 +120,8 @@ interface Classified {
   readonly unrecognized: { id: string; subject: string }[];
 }
 
-function parseMessage(message: MailMessage): { bank: string | null; result: ParseResult } {
-  const parser = parserForSender(message.from);
+function parseMessage(db: DatabaseSync, message: MailMessage): { bank: string | null; result: ParseResult } {
+  const parser = resolveParser(db, message.from);
   if (!parser) return { bank: null, result: { status: "unrecognized" } };
   try {
     return { bank: parser.bank, result: parser.parse({ subject: message.subject, text: message.body, receivedAt: message.receivedAt }) };
@@ -128,7 +131,8 @@ function parseMessage(message: MailMessage): { bank: string | null; result: Pars
   }
 }
 
-function classify(fetched: readonly Fetched[]): Classified & { failed: { id: string; error: string }[] } {
+function classify(db: DatabaseSync, fetched: readonly Fetched[]): Classified & { failed: { id: string; error: string }[]; needsFormat: SyncSummary["needsFormat"] } {
+  const noRules = new Map<string, { count: number; subjects: string[] }>();
   const inputs: MovementInput[] = [];
   const skipped: { id: string; subject: string }[] = [];
   const review: { id: string; subject: string; reason: string }[] = [];
@@ -139,14 +143,21 @@ function classify(fetched: readonly Fetched[]): Classified & { failed: { id: str
       failed.push({ id: f.id, error: cleanText(f.error ?? "unknown error", MAX_ERROR_CHARS) });
       continue;
     }
-    const { bank, result } = parseMessage(f.message);
+    const { bank, result } = parseMessage(db, f.message);
     const ref = { id: f.id, subject: cleanText(f.message.subject, MAX_SUBJECT_CHARS) };
+    if (!bank) {
+      const sender = senderAddress(f.message.from);
+      const entry = noRules.get(sender) ?? { count: 0, subjects: [] };
+      entry.count += 1;
+      if (entry.subjects.length < 3 && !entry.subjects.includes(ref.subject)) entry.subjects.push(ref.subject);
+      noRules.set(sender, entry);
+    }
     if (result.status === "movement" && bank) inputs.push({ sourceId: f.id, bank, ...result.movement });
     else if (result.status === "skip") skipped.push(ref);
     else if (result.status === "review") review.push({ ...ref, reason: result.reason });
     else unrecognized.push(ref);
   }
-  return { inputs, skipped, review, unrecognized, failed };
+  return { inputs, skipped, review, unrecognized, failed, needsFormat: [...noRules].map(([sender, v]) => ({ sender, count: v.count, subjects: v.subjects })) };
 }
 
 function register(db: DatabaseSync, inputs: readonly MovementInput[]) {
@@ -182,7 +193,7 @@ export async function syncMail(db: DatabaseSync, source: MailSource, options: Sy
   const pending = filterUnregistered(db, ids).filter((id) => !logged.has(id));
   const batch = pending.slice(0, options.maxMessages ?? DEFAULT_MAX_MESSAGES);
 
-  const c = classify(await fetchAll(source, batch));
+  const c = classify(db, await fetchAll(source, batch));
   const saved = register(db, c.inputs);
   logSkipped(db, c.skipped);
 
@@ -196,6 +207,7 @@ export async function syncMail(db: DatabaseSync, source: MailSource, options: Sy
     review: c.review.slice(0, MAX_LISTED),
     unrecognized: c.unrecognized.slice(0, MAX_LISTED),
     unrecognizedCount: c.unrecognized.length,
+    needsFormat: c.needsFormat,
     failed: [...c.failed, ...saved.failed].slice(0, MAX_LISTED),
     remaining: pending.length - batch.length,
     uncategorizedMerchants: uncategorizedMerchants(db),

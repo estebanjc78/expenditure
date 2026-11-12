@@ -6,6 +6,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { createGmailService } from "./gmail/service.js";
 import type { GmailService } from "./gmail/service.js";
 import { registerBudgetTools } from "./tools/budget.js";
+import { registerFormatTools } from "./tools/formats.js";
 import { registerGmailTools } from "./tools/gmail.js";
 import { registerPanelTools } from "./tools/panel.js";
 import type { PanelToolOptions } from "./tools/panel.js";
@@ -26,6 +27,7 @@ export function createServer(db: DatabaseSync, options: ServerOptions = {}): Mcp
   registerBudgetTools(server, db);
   registerSenderTools(server, db);
   registerGmailTools(server, db, gmail);
+  registerFormatTools(server, db);
   registerPanelTools(server, db, options.panel);
   return server;
 }

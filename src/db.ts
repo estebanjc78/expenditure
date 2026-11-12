@@ -32,6 +32,13 @@ CREATE TABLE IF NOT EXISTS senders (
   address TEXT PRIMARY KEY,
   label TEXT
 );
+CREATE TABLE IF NOT EXISTS parser_profiles (
+  sender TEXT PRIMARY KEY,
+  bank TEXT NOT NULL,
+  profile_json TEXT NOT NULL,
+  samples INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS mail_log (
   message_id TEXT PRIMARY KEY,
   outcome TEXT NOT NULL,
