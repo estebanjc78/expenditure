@@ -4,7 +4,7 @@ import { z } from "zod";
 import { setBudget } from "../domain/budget.js";
 import { budgetOverview } from "../domain/budget-overview.js";
 import { setMerchantRule, setMerchantRules } from "../domain/classify.js";
-import { importFixedExpenses, pendingFixed } from "../domain/fixed.js";
+import { importFixedExpenses, pendingFixed, unlistedRecurring } from "../domain/fixed.js";
 import { MONTH_RE } from "../domain/month.js";
 import { run } from "./helpers.js";
 
@@ -88,5 +88,16 @@ export function registerBudgetTools(server: McpServer, db: DatabaseSync): void {
       inputSchema: { month },
     },
     ({ month: m }) => run(() => pendingFixed(db, m)),
+  );
+
+  server.registerTool(
+    "gastos_recurrentes_no_listados",
+    {
+      description:
+        "Descubre gastos recurrentes que NO estás siguiendo: devuelve, para el mes YYYY-MM, los gastos de categoría suscripcion o fijo cuyo comercio no coincide con ningún concepto de la lista de gastos fijos " +
+        "(agrupados por comercio, de mayor a menor). Úsala para encontrar suscripciones olvidadas. Compara con la lista importada con importar_gastos_fijos; si la lista está vacía, todo aparece como no listado.",
+      inputSchema: { month },
+    },
+    ({ month: m }) => run(() => unlistedRecurring(db, m)),
   );
 }

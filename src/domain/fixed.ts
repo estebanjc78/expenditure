@@ -86,16 +86,35 @@ export async function importFixedExpenses(
   return { imported: rows.length };
 }
 
+function wordsOf(text: string): string[] {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+}
+
 /**
- * Whole-word match: the keyword's words must appear as a contiguous word sequence
- * in the merchant. Ambiguity remains possible (a short keyword may match unrelated
- * merchants) and one payment may satisfy several fixed expenses.
+ * Whole-word match, ignoring case and accents: the keyword's words must appear as a contiguous word
+ * sequence in the merchant. Banks cut long merchant names ("Compania de medic"), so a keyword ending in
+ * `*` also accepts a truncated last word ("compania de med*"). Ambiguity remains possible (a short
+ * keyword may match unrelated merchants) and one payment may satisfy several fixed expenses.
  */
 function matchesKeyword(merchant: string, keyword: string): boolean {
-  if (!keyword) return false;
-  return ` ${merchant.replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `.includes(
-    ` ${keyword.replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `,
-  );
+  const prefixLast = keyword.trim().endsWith("*");
+  const k = wordsOf(keyword);
+  const m = wordsOf(merchant);
+  if (!k.length) return false;
+  const last = k.length - 1;
+  for (let i = 0; i + k.length <= m.length; i += 1) {
+    const head = k.slice(0, last).every((word, j) => m[i + j] === word);
+    const tail = prefixLast ? m[i + last]!.startsWith(k[last]!) : m[i + last] === k[last];
+    if (head && tail) return true;
+  }
+  return false;
 }
 
 export function pendingFixed(db: DatabaseSync, month: string): FixedStatus[] {
@@ -115,4 +134,35 @@ export function pendingFixed(db: DatabaseSync, month: string): FixedStatus[] {
       ? { name: f.name, expected: f.amount, paid: true, paidAmount: hits.reduce((s, p) => s + p.amount, 0) }
       : { name: f.name, expected: f.amount, paid: false };
   });
+}
+
+export interface UnlistedRecurring {
+  readonly merchant: string;
+  readonly category: "suscripcion" | "fijo";
+  readonly count: number;
+  readonly total: number;
+}
+
+/**
+ * Subscription / fixed-category expenses of the month whose merchant matches no concept in the fixed-expenses
+ * list: the recurring charges you are paying but not tracking. Grouped by merchant, biggest first.
+ */
+export function unlistedRecurring(db: DatabaseSync, month: string): UnlistedRecurring[] {
+  assertMonth(month);
+  const fixed = db.prepare("SELECT name, merchant FROM fixed_expenses").all() as unknown as { name: string; merchant: string | null }[];
+  const keywords = fixed.map((f) => normalizeMerchant(f.merchant ?? "") || normalizeMerchant(f.name));
+  const rows = db
+    .prepare(
+      `SELECT merchant, category, amount FROM movements
+       WHERE kind = 'gasto' AND category IN ('suscripcion', 'fijo') AND substr(date, 1, 7) = ?`,
+    )
+    .all(month) as { merchant: string; category: "suscripcion" | "fijo"; amount: number }[];
+  const groups = new Map<string, UnlistedRecurring>();
+  for (const r of rows) {
+    if (keywords.some((k) => matchesKeyword(normalizeMerchant(r.merchant), k))) continue;
+    const key = `${r.category}|${normalizeMerchant(r.merchant)}`;
+    const prev = groups.get(key);
+    groups.set(key, { merchant: prev?.merchant ?? r.merchant, category: r.category, count: (prev?.count ?? 0) + 1, total: (prev?.total ?? 0) + Number(r.amount) });
+  }
+  return [...groups.values()].sort((a, b) => b.total - a.total);
 }

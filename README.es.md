@@ -136,9 +136,9 @@ Opcional. Crea un `.xlsx` con la primera hoja así (encabezados en la fila 1, si
 | Arriendo | 1200000 | nombre del arrendador |
 | Internet | 150000 | proveedor |
 
-`comercio` es la palabra clave para detectar el pago entre tus movimientos (palabras completas; si está vacío se usa `nombre`). Luego pídele a Claude que lo importe desde la ruta del archivo. Importar reemplaza la lista anterior.
+`comercio` es la palabra clave para detectar el pago entre tus movimientos (palabras completas, sin distinguir acentos ni mayúsculas; si está vacío se usa `nombre`). Los bancos cortan los nombres largos, así que una palabra clave que termine en `*` también acepta la última palabra cortada (`compania de med*`). Luego pídele a Claude que lo importe desde la ruta del archivo. Importar reemplaza la lista anterior.
 
-## Herramientas (19)
+## Herramientas (20)
 
 Los nombres de las herramientas están en español.
 
@@ -162,6 +162,7 @@ Los nombres de las herramientas están en español.
 | `desconectar_gmail` | Borra el token de Gmail guardado en este computador. |
 | `sincronizar_gmail` | Descarga y procesa los correos del banco de un rango de fechas y registra los movimientos; devuelve un resumen. |
 | `clasificar_comercios` | Clasifica varios comercios de una vez y reclasifica sus gastos. |
+| `gastos_recurrentes_no_listados` | Suscripciones y gastos fijos del mes que no están en tu lista de gastos fijos: encuentra los que olvidaste. |
 | `abrir_panel` | Abre en tu navegador el panel interactivo de gastos (local, solo lectura). |
 
 ## Solución de problemas
@@ -192,7 +193,7 @@ npm install
 npm test            # pruebas unitarias
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 19 herramientas por stdio
+npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 20 herramientas por stdio
 npm run build:mcpb  # opcional: genera build/expenditures-control.mcpb
 ```
 

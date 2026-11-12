@@ -134,9 +134,9 @@ Optional. Create an `.xlsx` with the first sheet like this (headers on row 1, ca
 | Rent | 1200000 | landlord name |
 | Internet | 150000 | ISP |
 
-`comercio` is the keyword used to detect the payment among your movements (whole words; if empty, `nombre` is used). Then ask Claude to import it from the file path. Importing replaces the previous list.
+`comercio` is the keyword used to detect the payment among your movements (whole words, accents and case ignored; if empty, `nombre` is used). Banks cut long merchant names, so a keyword ending in `*` also matches a truncated last word (`compania de med*`). Then ask Claude to import it from the file path. Importing replaces the previous list.
 
-## Tools (19)
+## Tools (20)
 
 The tool names are in Spanish.
 
@@ -160,6 +160,7 @@ The tool names are in Spanish.
 | `desconectar_gmail` | Delete the Gmail token stored on this computer. |
 | `sincronizar_gmail` | Download and parse bank mails for a date range and register the movements; returns a summary. |
 | `clasificar_comercios` | Classify many merchants at once and reclassify their expenses. |
+| `gastos_recurrentes_no_listados` | Subscriptions and fixed charges of a month that are not in your fixed-expenses list: find the ones you forgot. |
 | `abrir_panel` | Open the interactive spending dashboard in your browser (local, read-only). |
 
 ## Troubleshooting
@@ -190,7 +191,7 @@ npm install
 npm test            # unit tests
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 19 tools over stdio
+npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 20 tools over stdio
 npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
 npm run build && node scripts/panel-demo.mjs --open  # look at the dashboard with made-up data
 ```

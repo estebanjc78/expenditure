@@ -9,7 +9,7 @@ Flujo de una solicitud desde el asistente hasta la base SQLite local y de vuelta
 flowchart TD
     U["Usuario pide sincronizar o consultar gastos"] --> C["Cliente MCP / Claude"]
     C -->|"Inicializa conexión y descubre capacidades"| S["Servidor MCP expenditures-control"]
-    S -->|"Lista las 19 herramientas"| C
+    S -->|"Lista las 20 herramientas"| C
 
     C --> D{"¿Cómo se leen los correos?"}
 
