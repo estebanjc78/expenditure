@@ -17,7 +17,7 @@ var state = {
   token: null, months: [], currentMonth: null, month: null, bank: "", data: null, etag: null,
   expanded: {}, filters: { category: null, day: null, merchant: null, kind: "all", q: "" },
   sort: { key: "date", dir: -1 }, limit: 50, view: { line: "chart", days: "chart" },
-  loading: false, error: null, animate: true, heroShown: 0, updatedAt: 0, sig: ""
+  loading: false, error: null, animate: true, heroShown: 0, updatedAt: 0, sig: "", highlight: null
 };
 var ui = {};
 

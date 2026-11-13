@@ -77,6 +77,40 @@ describe("the report as an MCP App", () => {
   });
 });
 
+describe("ver_panel resaltar: Claude points at a movement inside the report", () => {
+  async function withRent() {
+    const db = openDb(":memory:");
+    addMovement(db, { sourceId: "r1", date: "2026-10-15", amount: 9_000_000, merchant: "Transferencia a Propietario Ejemplo", bank: "bbva", kind: "gasto" });
+    addMovement(db, { sourceId: "r2", date: "2026-11-03", amount: 50_000, merchant: "Tienda", bank: "bbva", kind: "gasto" });
+    db.prepare("INSERT INTO fixed_expenses (name, amount, merchant) VALUES ('Alquiler', 9000000, 'propietario')").run();
+    const server = createServer(db, { panel: { openUrl: async () => false, now: () => NOW } });
+    const client = new Client({ name: "test", version: "0.0.0" });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(a), client.connect(b)]);
+    return client;
+  }
+
+  it("opens the report on the month where the movement is, with its id highlighted, and tells Claude what it found", async () => {
+    const client = await withRent();
+    const res = (await client.callTool({ name: "ver_panel", arguments: { resaltar: "alquiler" } })) as unknown as {
+      content: { text: string }[];
+      structuredContent: { month: string; highlight: { query: string; ids: number[] } };
+    };
+    expect(res.structuredContent.month).toBe("2026-10");
+    expect(res.structuredContent.highlight.query).toBe("alquiler");
+    expect(res.structuredContent.highlight.ids).toHaveLength(1);
+    expect(res.content[0]!.text).toMatch(/Resalté en el reporte 1 movimiento/);
+    expect(res.content[0]!.text).toContain("9.000.000");
+  });
+
+  it("says plainly when nothing matches, so Claude can suggest the month may not be loaded", async () => {
+    const client = await withRent();
+    const res = (await client.callTool({ name: "ver_panel", arguments: { resaltar: "dentista" } })) as unknown as { content: { text: string }[]; structuredContent: { highlight: { ids: number[] } } };
+    expect(res.structuredContent.highlight.ids).toEqual([]);
+    expect(res.content[0]!.text).toMatch(/No encontré movimientos para «dentista»/);
+  });
+});
+
 describe("renderAppPage", () => {
   it("embeds the whole dashboard in one self-contained page", () => {
     const html = renderAppPage();

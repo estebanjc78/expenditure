@@ -6,7 +6,7 @@ Servidor MCP que guarda tus movimientos bancarios (COP), tomados de las notifica
 
 ## Cómo se ve
 
-Pídele a Claude **"abre mi panel de gastos"** y se abre en tu navegador un panel visual e interactivo: un número protagonista, tu ritmo frente al mes anterior, categorías que se expanden con un clic, un gráfico día a día y una tabla con búsqueda. Corre solo en tu computador, se actualiza solo y sigue tu tema claro u oscuro. (Datos de demostración.)
+Pídele a Claude **"muéstrame mis gastos"** y aparece **dentro de la conversación** un reporte visual e interactivo (Claude y Claude Desktop; es una MCP App, no se abre ningún navegador). Si no encuentras un movimiento ("no encuentro la transferencia del alquiler"), Claude muestra el reporte en el mes correcto con ese movimiento resaltado. Si el cliente no soporta MCP Apps, `abrir_panel` abre el mismo panel en tu navegador: un número protagonista, tu ritmo frente al mes anterior, categorías que se expanden con un clic, un gráfico día a día y una tabla con búsqueda. Corre solo en tu computador, se actualiza solo y sigue tu tema claro u oscuro. (Datos de demostración.)
 
 ![Panel, tema claro](docs/images/panel-light.png)
 ![Panel, tema oscuro](docs/images/panel-dark.png)
@@ -138,7 +138,7 @@ Opcional. Crea un `.xlsx` con la primera hoja así (encabezados en la fila 1, si
 
 `comercio` es la palabra clave para detectar el pago entre tus movimientos (palabras completas, sin distinguir acentos ni mayúsculas; si está vacío se usa `nombre`). Los bancos cortan los nombres largos, así que una palabra clave que termine en `*` también acepta la última palabra cortada (`compania de med*`). Luego pídele a Claude que lo importe desde la ruta del archivo. Importar reemplaza la lista anterior.
 
-## Herramientas (23)
+## Herramientas (25)
 
 Los nombres de las herramientas están en español.
 
@@ -166,6 +166,8 @@ Los nombres de las herramientas están en español.
 | `formatos_banco` | Qué bancos sabe leer el servidor (incluidos y aprendidos) y qué remitentes autorizados todavía necesitan reglas. |
 | `configurar_formato_banco` | Enseña al servidor un banco nuevo con 3 o 4 comprobantes confirmados; se guarda solo si todos pasan. |
 | `eliminar_formato_banco` | Borra las reglas aprendidas de un remitente. |
+| `ver_panel` | Muestra el reporte interactivo dentro de la conversación; `resaltar` marca los movimientos que buscas (un concepto de gastos fijos, un nombre, un monto o una categoría). |
+| `datos_panel` | Herramienta privada con la que el reporte pide sus propios datos; el modelo no la ve, así que los movimientos no entran a su contexto. |
 | `abrir_panel` | Abre en tu navegador el panel interactivo de gastos (local, solo lectura). |
 
 ## Solución de problemas
@@ -197,7 +199,7 @@ npm install
 npm test            # pruebas unitarias
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 23 herramientas por stdio
+npm run smoke:pack  # npm pack, instala el tarball en un temporal, verifica 25 herramientas por stdio
 npm run build:mcpb  # opcional: genera build/expenditures-control.mcpb
 ```
 

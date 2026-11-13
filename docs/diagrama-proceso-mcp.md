@@ -9,7 +9,7 @@ Flujo de una solicitud desde el asistente hasta la base SQLite local y de vuelta
 flowchart TD
     U["Usuario pide sincronizar o consultar gastos"] --> C["Cliente MCP / Claude"]
     C -->|"Inicializa conexión y descubre capacidades"| S["Servidor MCP expenditures-control"]
-    S -->|"Lista las 23 herramientas"| C
+    S -->|"Lista las 25 herramientas"| C
 
     C --> D{"¿Cómo se leen los correos?"}
 
@@ -46,7 +46,7 @@ flowchart TD
     C -->|"consultar_movimientos, estado_presupuesto"| S
     S --> DB
 
-    C -->|"abrir_panel"| W["Panel web local: 127.0.0.1, token secreto, solo lectura"]
+    C -->|"ver_panel con resaltar opcional"| W["Reporte dentro de Claude (MCP App): pide sus datos con una herramienta privada y resalta el movimiento buscado"]
     W -->|"Lee la base y se actualiza solo"| DB
     W --> U
 

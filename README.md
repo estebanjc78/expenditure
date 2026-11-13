@@ -6,7 +6,7 @@ An MCP server that keeps your bank-notification movements (COP) in a local SQLit
 
 ## What it looks like
 
-Ask Claude to **"open my spending panel"** and a visual, interactive dashboard opens in your browser: one headline number, your pace against last month, categories that expand with a click, a day-by-day chart, and a searchable table. It runs only on your computer, refreshes by itself, and follows your light or dark theme. (Demo data.)
+Ask Claude to **"show me my spending"** and a visual, interactive report appears **inside the conversation** (Claude, Claude Desktop; it is an MCP App, so nothing opens in a browser). If you cannot find a movement ("I can't find the rent transfer"), Claude shows the report on the right month with that movement highlighted. Without MCP Apps support, `abrir_panel` opens the same dashboard in your browser: one headline number, your pace against last month, categories that expand with a click, a day-by-day chart, and a searchable table. It runs only on your computer, refreshes by itself, and follows your light or dark theme. (Demo data.)
 
 ![Dashboard, light theme](docs/images/panel-light.png)
 ![Dashboard, dark theme](docs/images/panel-dark.png)
@@ -136,7 +136,7 @@ Optional. Create an `.xlsx` with the first sheet like this (headers on row 1, ca
 
 `comercio` is the keyword used to detect the payment among your movements (whole words, accents and case ignored; if empty, `nombre` is used). Banks cut long merchant names, so a keyword ending in `*` also matches a truncated last word (`compania de med*`). Then ask Claude to import it from the file path. Importing replaces the previous list.
 
-## Tools (23)
+## Tools (25)
 
 The tool names are in Spanish.
 
@@ -164,6 +164,8 @@ The tool names are in Spanish.
 | `formatos_banco` | Which banks the server can read (built-in and learned) and which authorized senders still need rules. |
 | `configurar_formato_banco` | Teach the server a new bank from 3-4 confirmed example notices; saved only if all pass. |
 | `eliminar_formato_banco` | Delete learned rules for a sender. |
+| `ver_panel` | Show the interactive report inside the conversation; `resaltar` highlights the movements you are looking for (a fixed-expense concept, a name, an amount or a category). |
+| `datos_panel` | Private tool the report uses to fetch its own data; the model never sees it, so movements do not enter its context. |
 | `abrir_panel` | Open the interactive spending dashboard in your browser (local, read-only). |
 
 ## Troubleshooting
@@ -195,7 +197,7 @@ npm install
 npm test            # unit tests
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 23 tools over stdio
+npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 25 tools over stdio
 npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
 npm run build && node scripts/panel-demo.mjs --open  # look at the dashboard with made-up data
 ```

@@ -86,6 +86,11 @@ td.num { white-space: nowrap; }
 .legend i { width: 16px; height: 2px; border-radius: 2px; display: inline-block; }
 .legend .a i { background: var(--accent); } .legend .b i { background: var(--series-b); }
 .chart-host { width: 100%; min-height: 230px; position: relative; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 20px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); font-size: 14px; font-weight: 550; }
+.banner-text { flex: 1; }
+tr.hl td { background: color-mix(in srgb, var(--accent) 14%, transparent); animation: flash 1.6s ease-out 2; }
+tr.hl td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+@keyframes flash { 0%, 100% { background: color-mix(in srgb, var(--accent) 14%, transparent); } 40% { background: color-mix(in srgb, var(--accent) 34%, transparent); } }
 .chart-note { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); max-width: 80ch; }
 .linkish { border: 0; background: transparent; color: var(--ink-2); font-size: 13px; padding: 6px 10px; border-radius: 10px; }
 .linkish:hover { background: var(--hover); color: var(--ink); }

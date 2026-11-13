@@ -105,7 +105,7 @@ function wordsOf(text: string): string[] {
  * `*` also accepts a truncated last word ("compania de med*"). Ambiguity remains possible (a short
  * keyword may match unrelated merchants) and one payment may satisfy several fixed expenses.
  */
-function matchesKeyword(merchant: string, keyword: string): boolean {
+export function matchesKeyword(merchant: string, keyword: string): boolean {
   const prefixLast = keyword.trim().endsWith("*");
   const k = wordsOf(keyword);
   const m = wordsOf(merchant);

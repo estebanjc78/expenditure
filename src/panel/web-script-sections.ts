@@ -65,9 +65,23 @@ function buildShell() {
     h("div", { class: "toolbar" }, [ui.search, ui.kindSeg]), ui.chips, ui.tableHost, ui.more
   ]);
 
-  ui.stack = h("main", { class: "stack" }, [hero, ui.tiles, h("div", { class: "cols" }, [cats, merchants]), days, ui.moveCard]);
+  ui.banner = h("div", { class: "banner", role: "status", hidden: true });
+  ui.stack = h("main", { class: "stack" }, [ui.banner, hero, ui.tiles, h("div", { class: "cols" }, [cats, merchants]), days, ui.moveCard]);
   append(root, [top, ui.stack, h("p", { class: "foot", text: "Tus datos se quedan en este computador. El panel se actualiza solo." })]);
   ui.built = true;
+}
+
+function renderBanner() {
+  var hl = state.highlight;
+  clear(ui.banner);
+  if (!hl) { ui.banner.hidden = true; return; }
+  var n = state.data ? state.data.movements.filter(function (m) { return hl.ids.has(m.id); }).length : 0;
+  ui.banner.hidden = false;
+  append(ui.banner, [
+    h("span", { class: "banner-text", text: n ? "Resaltado en la tabla: " + plural(n, "movimiento", "movimientos") + " para «" + hl.query + "»" : "No hay movimientos para «" + hl.query + "» en este mes" }),
+    n ? h("button", { class: "linkish", onclick: scrollToHighlight }, "Verlo ↓") : null,
+    h("button", { class: "icon-btn", "aria-label": "Quitar el resaltado", onclick: function () { setHighlight(null); } }, "×")
+  ]);
 }
 
 function renderTop() {
@@ -94,7 +108,7 @@ function renderMenu() {
   var all = state.months.slice();
   if (state.currentMonth && all.indexOf(state.currentMonth) < 0) all.push(state.currentMonth);
   all.sort().reverse().forEach(function (m) {
-    ui.menu.appendChild(h("button", { role: "menuitemradio", "aria-checked": String(m === state.month), onclick: function () { closeMenu(); gotoMonth(m); } }, [monthLabel(m), m === state.month ? "✓" : ""]));
+    ui.menu.appendChild(h("button", { role: "menuitemradio", "aria-checked": String(m === state.month), onclick: function () { closeMenu(); state.highlight = null; gotoMonth(m); } }, [monthLabel(m), m === state.month ? "✓" : ""]));
   });
 }
 

@@ -41,8 +41,24 @@ function renderChips() {
   clear(ui.chips); append(ui.chips, chips);
 }
 
+function setHighlight(hl) {
+  state.highlight = hl ? { query: hl.query, ids: new Set(hl.ids || []), scroll: !!(hl.ids && hl.ids.length) } : null;
+  if (ui.built && state.data) { renderBanner(); renderMovements(); }
+}
+function scrollToHighlight() {
+  var el = ui.tableHost.querySelector("tr.hl");
+  if (el) el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" });
+}
+
 function renderMovements() {
-  var rows = filteredMovements(), shown = rows.slice(0, state.limit);
+  var rows = filteredMovements();
+  var hl = state.highlight;
+  if (hl && hl.ids.size) {
+    var last = -1;
+    rows.forEach(function (m, i) { if (hl.ids.has(m.id)) last = i; });
+    if (last >= state.limit) state.limit = last + 1;
+  }
+  var shown = rows.slice(0, state.limit);
   clear(ui.kindSeg);
   [["all", "Todos"], ["gasto", "Gastos"], ["ingreso", "Ingresos"], ["transferencia_propia", "Entre cuentas"]].forEach(function (k) {
     ui.kindSeg.appendChild(h("button", { "aria-pressed": String(state.filters.kind === k[0]), onclick: function () { setFilter({ kind: k[0] }); } }, k[1]));
@@ -57,7 +73,7 @@ function renderMovements() {
   }
   var head = h("tr", null, [sortHeader("Fecha", "date", false), h("th", { text: "Comercio" }), h("th", { class: "hide-sm", text: "Categoría" }), h("th", { class: "hide-sm", text: "Banco" }), sortHeader("Monto", "amount", true)]);
   var body = shown.map(function (m) {
-    return h("tr", null, [
+    return h("tr", { class: hl && hl.ids.has(m.id) ? "hl" : null }, [
       h("td", { class: "muted num", text: dayLabel(m.date) }),
       h("td", { text: m.merchant }),
       h("td", { class: "hide-sm" }, h("span", { class: "tag", text: kindLabel(m) })),
@@ -86,6 +102,7 @@ function gotoMonth(m) {
   loadMonth(false);
 }
 function stepMonth(delta) {
+  state.highlight = null;
   var list = selectableMonths(), i = list.indexOf(state.month) + delta;
   if (i >= 0 && i < list.length) gotoMonth(list[i]);
 }
@@ -122,7 +139,8 @@ function updateLive() {
 }
 function render() {
   if (!ui.built) buildShell();
-  renderTop(); renderHero(); renderTiles(); renderCategories(); renderMerchants(); renderDays(); renderMovements(); updateLive();
+  renderTop(); renderBanner(); renderHero(); renderTiles(); renderCategories(); renderMerchants(); renderDays(); renderMovements(); updateLive();
+  if (state.highlight && state.highlight.scroll) { state.highlight.scroll = false; setTimeout(scrollToHighlight, 350); }
   ui.root.classList.toggle("enter", state.animate);
   if (state.animate) { state.animate = false; setTimeout(function () { ui.root.classList.remove("enter"); }, 1400); }
 }
@@ -170,6 +188,7 @@ function debounce(fn, ms) { var t = null; return function () { clearTimeout(t); 
   if (inApp) {
     state.token = "mcp-app";
     window.__MCP_APP__.onMonth = function (m) { if (ui.built && m !== state.month) gotoMonth(m); else state.requested = m; };
+    window.__MCP_APP__.onHighlight = setHighlight;
   } else {
     var t = readToken();
     state.token = t.token; state.requested = t.month;
@@ -184,6 +203,7 @@ function debounce(fn, ms) { var t = null; return function () { clearTimeout(t); 
     window.__MCP_APP__.ready.then(function () {
       window.__MCP_APP__.applyHostTheme();
       if (window.__MCP_APP__.initialMonth) state.requested = window.__MCP_APP__.initialMonth;
+      if (window.__MCP_APP__.highlight) setHighlight(window.__MCP_APP__.highlight);
       begin();
     }, function () { showMessage("No se pudo conectar con Claude", ["Vuelve a pedirle a Claude que te muestre el panel."]); });
   } else begin();
