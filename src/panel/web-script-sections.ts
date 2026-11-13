@@ -10,6 +10,18 @@ function isCurrent(d) { return d.month === d.today.slice(0, 7); }
 function lastShownDay(d) { return isCurrent(d) ? Number(d.today.slice(8, 10)) : daysIn(d.month); }
 function pctDelta(cur, prev) { return prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null; }
 function gastos(d) { return d.movements.filter(function (m) { return m.kind === "gasto"; }); }
+function hasSel() { var f = state.filters; return !!(f.category || f.merchant || f.day); }
+/** Cross-filter: does a spending movement pass the current selection (category, merchant, day)? skip ignores one dimension, so each visual can show the rest. */
+function passSel(m, skip) {
+  var f = state.filters;
+  if (f.category && skip !== "category" && (m.category || "sin_categoria") !== f.category) return false;
+  if (f.merchant && skip !== "merchant" && plain(m.merchant) !== f.merchant.key) return false;
+  if (f.day && skip !== "day" && Number(m.date.slice(8, 10)) !== f.day) return false;
+  return true;
+}
+function selGastos(skip) { return gastos(state.data).filter(function (m) { return passSel(m, skip); }); }
+function sumOf(list) { return list.reduce(function (t, m) { return t + m.amount; }, 0); }
+function dayOf(m) { return Number(m.date.slice(8, 10)); }
 
 function buildShell() {
   var root = ui.root = clear(document.getElementById("app"));
@@ -36,11 +48,12 @@ function buildShell() {
   ui.lineHost = h("div", { class: "chart-host" });
   ui.legendA = h("span", { class: "a" }, [h("i"), h("span")]);
   ui.legendB = h("span", { class: "b" }, [h("i"), h("span")]);
+  ui.legendS = h("span", { class: "s", hidden: true }, [h("i"), h("span", { text: "Selección" })]);
   ui.lineToggle = h("button", { class: "linkish", onclick: function () { state.view.line = state.view.line === "chart" ? "table" : "chart"; renderHero(); } });
   var hero = h("section", { class: "card hero" }, [
     h("div", { class: "hero-top" }, [h("div", null, [ui.heroLabel, ui.heroValue]), h("div", { class: "hero-side" }, [ui.heroDelta, ui.heroNote])]),
     h("div", { class: "hero-chart" }, [
-      h("div", { class: "card-head" }, [h("div", null, [h("h2", { text: "Ritmo del mes" }), h("p", { class: "sub", text: "Gasto acumulado, día a día" })]), h("div", { class: "tools" }, [h("div", { class: "legend" }, [ui.legendA, ui.legendB]), ui.lineToggle])]),
+      h("div", { class: "card-head" }, [h("div", null, [h("h2", { text: "Ritmo del mes" }), h("p", { class: "sub", text: "Gasto acumulado, día a día" })]), h("div", { class: "tools" }, [h("div", { class: "legend" }, [ui.legendA, ui.legendB, ui.legendS]), ui.lineToggle])]),
       ui.lineHost,
       h("p", { class: "chart-note", text: "Los totales no incluyen impuestos ni cargos bancarios (4x1000, IVA, comisiones y cuotas de manejo), que solo aparecen en el extracto del banco: pueden diferir de él." })
     ])
@@ -66,7 +79,8 @@ function buildShell() {
   ]);
 
   ui.banner = h("div", { class: "banner", role: "status", hidden: true });
-  ui.stack = h("main", { class: "stack" }, [ui.banner, hero, ui.tiles, h("div", { class: "cols" }, [cats, merchants]), days, ui.moveCard]);
+  ui.selbar = h("div", { class: "selbar", role: "status", hidden: true });
+  ui.stack = h("main", { class: "stack" }, [ui.selbar, ui.banner, hero, ui.tiles, h("div", { class: "cols" }, [cats, merchants]), days, ui.moveCard]);
   append(root, [top, ui.stack, h("p", { class: "foot", text: "Tus datos se quedan en este computador. El panel se actualiza solo." })]);
   ui.built = true;
 }
@@ -82,6 +96,24 @@ function renderBanner() {
     n ? h("button", { class: "linkish", onclick: scrollToHighlight }, "Verlo ↓") : null,
     h("button", { class: "icon-btn", "aria-label": "Quitar el resaltado", onclick: function () { setHighlight(null); } }, "×")
   ]);
+}
+
+function renderSelBar() {
+  var f = state.filters, bar = ui.selbar;
+  clear(bar);
+  if (!hasSel()) { bar.hidden = true; return; }
+  function chip(text, onRemove) { return h("span", { class: "chip" }, [text, h("button", { "aria-label": "Quitar " + text, onclick: onRemove }, "×")]); }
+  var chips = [];
+  if (f.category) chips.push(chip(catName(f.category), function () { setFilter({ category: null }); }));
+  if (f.merchant) chips.push(chip(f.merchant.label, function () { setFilter({ merchant: null }); }));
+  if (f.day) chips.push(chip(dayLabel(isoDay(state.month, f.day)), function () { setFilter({ day: null }); }));
+  var total = sumOf(selGastos()), all = state.data.totals.spent;
+  append(bar, [
+    h("span", { class: "sel-label", text: "Selección" }), chips,
+    h("span", { class: "sel-total num", text: money(total) + (all ? " · " + Math.round((total / all) * 100) + " % del gasto" : "") }),
+    h("button", { class: "linkish", onclick: function () { setFilter({ category: null, day: null, merchant: null }); } }, "Limpiar")
+  ]);
+  bar.hidden = false;
 }
 
 function renderTop() {
@@ -140,12 +172,17 @@ function renderHero() {
   ui.legendB.lastChild.textContent = monthName(d.prevMonth);
   ui.lineToggle.textContent = state.view.line === "chart" ? "Ver como tabla" : "Ver gráfico";
   var N = Math.max(daysIn(d.month), prevDays);
+  var sf = state.filters, selSeries = null;
+  if (sf.category || sf.merchant) {
+    selSeries = { label: "Selección", values: cumulative(selGastos("day").map(function (m) { return { day: dayOf(m), total: m.amount }; }), lastA) };
+  }
+  ui.legendS.hidden = !selSeries;
   if (state.view.line === "table") {
     var rows = [];
     for (var i = 1; i <= N; i++) rows.push(["Día " + i, a[i - 1] === undefined ? "—" : money(a[i - 1]), b[i - 1] === undefined ? "—" : money(b[i - 1])]);
     clear(ui.lineHost).appendChild(h("div", { style: { maxHeight: "300px", overflow: "auto" } }, simpleTable(["Día", monthName(d.month), monthName(d.prevMonth)], rows)));
   } else {
-    lineChart(ui.lineHost, { days: N, a: { label: monthName(d.month), values: a }, b: { label: monthName(d.prevMonth), values: b } });
+    lineChart(ui.lineHost, { days: N, a: { label: monthName(d.month), values: a }, b: { label: monthName(d.prevMonth), values: b }, sel: selSeries });
   }
 }
 
@@ -180,7 +217,12 @@ function miniList(cat) {
 }
 
 function renderCategories() {
-  var d = state.data, shown = d.categories.filter(function (c) { return c.spent > 0 || c.budget !== null; });
+  var d = state.data, f = state.filters, shown = d.categories.filter(function (c) { return c.spent > 0 || c.budget !== null; });
+  var bySel = null;
+  if (f.merchant || f.day) {
+    bySel = {};
+    selGastos("category").forEach(function (m) { var k = m.category || "sin_categoria"; bySel[k] = (bySel[k] || 0) + m.amount; });
+  }
   clear(ui.catList);
   if (!shown.length) { ui.catList.appendChild(h("p", { class: "empty", text: "Sin gastos en este mes." })); return; }
   shown.forEach(function (c) {
@@ -189,32 +231,54 @@ function renderCategories() {
     var sev = hasBudget ? (c.spent >= c.budget ? "danger" : c.alert ? "warn" : "") : "";
     var dp = pctDelta(c.spent, c.prevSpent);
     var open = !!state.expanded[c.category];
+    var picked = f.category === c.category;
+    var dim = (f.category && !picked) || (bySel && !bySel[c.category]);
     var left = [plural(c.count, "movimiento", "movimientos")];
     if (dp !== null && dp !== 0) left.push((dp > 0 ? "▲ " : "▼ ") + Math.abs(dp) + " % vs " + monthName(d.prevMonth).toLowerCase());
+    if (bySel && bySel[c.category]) left.push("Selección: " + money(bySel[c.category]));
     var right = hasBudget ? ["de " + money(c.budget) + " · " + pct + " %"] : [pct + " % del gasto"];
     if (sev) right.unshift(statusBadge(sev, over));
     var fill = h("span", { class: "fill " + sev }); fill.style.width = Math.min(100, Math.max(c.spent > 0 ? 2 : 0, pct)) + "%";
-    var row = h("button", { class: "meter-row", "aria-expanded": String(open) }, [
-      h("span", { class: "meter-name" }, [h("span", { class: "chev" }, icon("chev")), catName(c.category)]),
+    var chev = h("span", { class: "chev", role: "button", tabindex: "0", "aria-label": "Ver los movimientos de " + catName(c.category) }, icon("chev"));
+    var row = h("button", { class: "meter-row", "aria-pressed": String(picked), title: "Filtrar todo el reporte por esta categoría" }, [
+      h("span", { class: "meter-name" }, [chev, catName(c.category)]),
       h("span", { class: "meter-fig num", text: money(c.spent) }),
       h("span", { class: "meter-sub", text: left.join(" · ") }),
       h("span", { class: "meter-sub right" }, right),
       h("span", { class: "bar" }, fill)
     ]);
-    var item = h("div", { class: "meter" + (open ? " open" : "") }, [row, h("div", { class: "acc" }, h("div", null, miniList(c.category)))]);
-    row.addEventListener("click", function () { state.expanded[c.category] = !state.expanded[c.category]; item.classList.toggle("open", state.expanded[c.category]); row.setAttribute("aria-expanded", String(state.expanded[c.category])); });
+    var item = h("div", { class: "meter" + (open ? " open" : "") + (dim ? " dim" : "") }, [row, h("div", { class: "acc" }, h("div", null, miniList(c.category)))]);
+    function toggleOpen(e) {
+      e.stopPropagation();
+      state.expanded[c.category] = !state.expanded[c.category];
+      item.classList.toggle("open", state.expanded[c.category]);
+    }
+    chev.addEventListener("click", toggleOpen);
+    chev.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleOpen(e); } });
+    row.addEventListener("click", function () { setFilter(picked ? { category: null } : { category: c.category, kind: "gasto" }); });
     ui.catList.appendChild(item);
   });
 }
 
+function merchantTotals() {
+  var f = state.filters;
+  if (!f.category && !f.day) return state.data.topMerchants;
+  var by = {};
+  selGastos("merchant").forEach(function (m) {
+    var k = plain(m.merchant), e = by[k] || (by[k] = { merchant: m.merchant, total: 0, count: 0 });
+    e.total += m.amount; e.count += 1;
+  });
+  return Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 8);
+}
+
 function renderMerchants() {
-  var d = state.data, max = d.topMerchants.length ? d.topMerchants[0].total : 1;
+  var list = merchantTotals(), max = list.length ? list[0].total : 1;
   clear(ui.rank);
-  if (!d.topMerchants.length) { ui.rank.appendChild(h("p", { class: "empty", text: "Aún no hay comercios este mes." })); return; }
-  d.topMerchants.forEach(function (m) {
+  if (!list.length) { ui.rank.appendChild(h("p", { class: "empty", text: hasSel() ? "Sin comercios en esta selección." : "Aún no hay comercios este mes." })); return; }
+  list.forEach(function (m) {
     var active = state.filters.merchant && state.filters.merchant.key === plain(m.merchant);
     var fill = h("span", { class: "fill" }); fill.style.width = Math.max(2, (m.total / max) * 100) + "%";
-    ui.rank.appendChild(h("button", { class: "rank-row", "aria-pressed": String(!!active), title: "Filtrar movimientos de este comercio", onclick: function () {
+    ui.rank.appendChild(h("button", { class: "rank-row" + (state.filters.merchant && !active ? " dim" : ""), "aria-pressed": String(!!active), title: "Filtrar todo el reporte por este comercio", onclick: function () {
       setFilter({ merchant: active ? null : { key: plain(m.merchant), label: m.merchant } });
     } }, [h("span", { class: "rank-top" }, [h("span", { text: m.merchant }), h("span", { class: "num", text: money(m.total) })]), h("span", { class: "bar" }, fill)]));
   });
@@ -225,6 +289,9 @@ function dayValues(d) {
   d.daily.forEach(function (x) { values[Number(x.date.slice(8, 10))] = { total: x.total, count: x.count, top: null }; });
   var byDay = {};
   gastos(d).forEach(function (m) { var k = Number(m.date.slice(8, 10)); (byDay[k] = byDay[k] || []).push(m); });
+  if (state.filters.category || state.filters.merchant) {
+    selGastos("day").forEach(function (m) { var k = dayOf(m); if (values[k]) values[k].sel = (values[k].sel || 0) + m.amount; });
+  }
   Object.keys(byDay).forEach(function (k) {
     var best = byDay[k].reduce(function (a, b) { return b.amount > a.amount ? b : a; });
     if (values[k]) values[k].top = best.merchant;
@@ -240,6 +307,6 @@ function renderDays() {
     clear(ui.daysHost).appendChild(rows.length ? h("div", { style: { maxHeight: "300px", overflow: "auto" } }, simpleTable(["Día", "Mov.", "Gasto"], rows)) : h("p", { class: "empty", text: "Sin gastos en este mes." }));
     return;
   }
-  columnsChart(ui.daysHost, { month: d.month, days: N, values: values, selected: state.filters.day, onPick: function (day) { setFilter({ day: state.filters.day === day ? null : day }); } });
+  columnsChart(ui.daysHost, { month: d.month, days: N, values: values, hasSel: !!(state.filters.category || state.filters.merchant), selected: state.filters.day, onPick: function (day) { setFilter({ day: state.filters.day === day ? null : day }); } });
 }
 `;

@@ -6,7 +6,7 @@ An MCP server that keeps your bank-notification movements (COP) in a local SQLit
 
 ## What it looks like
 
-Ask Claude to **"show me my spending"** and a visual, interactive report appears **inside the conversation** (Claude, Claude Desktop; it is an MCP App, so nothing opens in a browser). If you cannot find a movement ("I can't find the rent transfer"), Claude shows the report on the right month with that movement highlighted. Without MCP Apps support, `abrir_panel` opens the same dashboard in your browser: one headline number, your pace against last month, categories that expand with a click, a day-by-day chart, and a searchable table. It runs only on your computer, refreshes by itself, and follows your light or dark theme. (Demo data.)
+Ask Claude to **"show me my spending"** and a visual, interactive report appears **inside the conversation** (Claude, Claude Desktop; it is an MCP App, so nothing opens in a browser). If you cannot find a movement ("I can't find the rent transfer"), Claude shows the report on the right month with that movement highlighted. Without MCP Apps support, `abrir_panel` opens the same dashboard in your browser: one headline number, your pace against last month, categories that expand with a click, and **cross-filtering like Power BI** (click a category, a merchant or a day and every chart, ranking and the table highlight the same selection), a day-by-day chart, and a searchable table. It runs only on your computer, refreshes by itself, and follows your light or dark theme. (Demo data.)
 
 ![Dashboard, light theme](docs/images/panel-light.png)
 ![Dashboard, dark theme](docs/images/panel-dark.png)

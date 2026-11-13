@@ -37,7 +37,7 @@ function gridAndAxes(svg, box, m, ticks, yOf, xs, xOf) {
 function lineChart(host, cfg) {
   clear(host);
   var box = chartBox(host, 280), m = { l: 46, r: 76, t: 16, b: 28 };
-  var N = cfg.days, A = cfg.a.values, B = cfg.b.values;
+  var N = cfg.days, A = cfg.a.values, B = cfg.b.values, S = cfg.sel ? cfg.sel.values : null;
   var plotW = box.width - m.l - m.r, plotH = box.height - m.t - m.b;
   var maxV = Math.max(A.length ? A[A.length - 1] : 0, B.length ? B[B.length - 1] : 0, 1);
   var ticks = niceTicks(maxV), yMax = ticks[ticks.length - 1];
@@ -49,15 +49,21 @@ function lineChart(host, cfg) {
     "aria-label": "Gasto acumulado de " + cfg.a.label + " comparado con " + cfg.b.label + ". Usa las flechas para recorrer los días." });
   gridAndAxes(svg, box, m, ticks, yOf, xTicks(N, 7), xOf);
 
-  if (A.length > 1) svg.appendChild(s("path", { d: path(A) + " L" + xOf(A.length).toFixed(1) + " " + yOf(0) + " L" + xOf(1).toFixed(1) + " " + yOf(0) + " Z", fill: "var(--accent)", opacity: "0.10" }));
+  if (A.length > 1 && !S) svg.appendChild(s("path", { d: path(A) + " L" + xOf(A.length).toFixed(1) + " " + yOf(0) + " L" + xOf(1).toFixed(1) + " " + yOf(0) + " Z", fill: "var(--accent)", opacity: "0.10" }));
   if (B.length) svg.appendChild(s("path", { d: path(B), fill: "none", stroke: "var(--series-b)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
-  if (A.length) svg.appendChild(s("path", { d: path(A), fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+  if (A.length) svg.appendChild(s("path", { d: path(A), fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: S ? "0.3" : "1" }));
+  if (S && S.length) svg.appendChild(s("path", { d: path(S), fill: "none", stroke: "var(--accent)", "stroke-width": 3, "stroke-linejoin": "round", "stroke-linecap": "round" }));
 
   var aEnd = A.length ? { x: xOf(A.length), y: yOf(A[A.length - 1]), v: A[A.length - 1] } : null;
   var bEnd = B.length ? { x: xOf(B.length), y: yOf(B[B.length - 1]), v: B[B.length - 1] } : null;
   if (bEnd) svg.appendChild(s("circle", { cx: bEnd.x, cy: bEnd.y, r: 4, fill: "var(--series-b)", stroke: "var(--surface)", "stroke-width": 2 }));
-  if (aEnd) svg.appendChild(s("circle", { cx: aEnd.x, cy: aEnd.y, r: 5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }));
-  if (aEnd) svg.appendChild(s("text", { x: aEnd.x + 11, y: aEnd.y + 4, class: "val-label" }, compact(aEnd.v)));
+  if (aEnd && !S) svg.appendChild(s("circle", { cx: aEnd.x, cy: aEnd.y, r: 5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }));
+  if (aEnd && !S) svg.appendChild(s("text", { x: aEnd.x + 11, y: aEnd.y + 4, class: "val-label" }, compact(aEnd.v)));
+  var sEnd = S && S.length ? { x: xOf(S.length), y: yOf(S[S.length - 1]), v: S[S.length - 1] } : null;
+  if (sEnd) {
+    svg.appendChild(s("circle", { cx: sEnd.x, cy: sEnd.y, r: 5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }));
+    svg.appendChild(s("text", { x: sEnd.x + 11, y: sEnd.y + 4, class: "val-label" }, compact(sEnd.v)));
+  }
   if (bEnd && (!aEnd || Math.abs(aEnd.y - bEnd.y) > 18 || Math.abs(aEnd.x - bEnd.x) > 60)) svg.appendChild(s("text", { x: bEnd.x + 10, y: bEnd.y + 4, class: "val-label b" }, compact(bEnd.v)));
 
   var cross = s("g", { visibility: "hidden" });
@@ -76,6 +82,7 @@ function lineChart(host, cfg) {
     if (b !== undefined) { dotB.setAttribute("cx", x); dotB.setAttribute("cy", yOf(b)); dotB.setAttribute("visibility", "inherit"); } else dotB.setAttribute("visibility", "hidden");
     var rows = [h("div", { class: "t-head", text: "Día " + day })];
     rows.push(tipRow("var(--accent)", cfg.a.label, a === undefined ? "—" : money(a)));
+    if (S) rows.push(tipRow("var(--accent)", cfg.sel.label, S[day - 1] === undefined ? "—" : money(S[day - 1])));
     rows.push(tipRow("var(--series-b)", cfg.b.label, b === undefined ? "—" : money(b)));
     if (a !== undefined && b !== undefined && a !== b) {
       var diff = a - b;
@@ -104,6 +111,9 @@ function lineChart(host, cfg) {
 }
 
 /* ---------- daily columns ---------- */
+function barPath(x, y, w, hgt, r) {
+  return "M" + x + " " + (y + hgt) + "V" + (y + r) + "Q" + x + " " + y + " " + (x + r) + " " + y + "H" + (x + w - r) + "Q" + (x + w) + " " + y + " " + (x + w) + " " + (y + r) + "V" + (y + hgt) + "Z";
+}
 function columnsChart(host, cfg) {
   clear(host);
   var box = chartBox(host, 230), m = { l: 56, r: 8, t: 26, b: 28 };
@@ -122,6 +132,7 @@ function columnsChart(host, cfg) {
   function showDay(day, cx, cy) {
     var v = cfg.values[day] || { total: 0, count: 0, top: null };
     var rows = [h("div", { class: "t-head", text: dayLabel(isoDay(cfg.month, day)) }), tipRow(null, v.count ? plural(v.count, "movimiento", "movimientos") : "Sin gastos", money(v.total))];
+    if (cfg.hasSel) rows.splice(2, 0, tipRow(null, "Selección", money(v.sel || 0)));
     if (v.top) rows.push(h("div", { class: "t-note", text: "Mayor: " + v.top }));
     var rect = svg.getBoundingClientRect();
     showTip(cx === undefined ? rect.left + xOf(day) : cx, cy === undefined ? rect.top + m.t + 30 : cy, rows);
@@ -132,7 +143,11 @@ function columnsChart(host, cfg) {
       var g = s("g", { class: "col" + (cfg.selected && cfg.selected !== dd ? " dim" : "") });
       if (v && v.total > 0) {
         var hgt = Math.max(2, plotH - (yOf(v.total) - m.t)), x = xOf(dd) - barW / 2, y = m.t + plotH - hgt, r = Math.min(4, barW / 2, hgt);
-        g.appendChild(s("path", { d: "M" + x + " " + (y + hgt) + "V" + (y + r) + "Q" + x + " " + y + " " + (x + r) + " " + y + "H" + (x + barW - r) + "Q" + (x + barW) + " " + y + " " + (x + barW) + " " + (y + r) + "V" + (y + hgt) + "Z", fill: "var(--accent)" }));
+        g.appendChild(s("path", { d: barPath(x, y, barW, hgt, r), fill: "var(--accent)", opacity: cfg.hasSel ? "0.25" : "1" }));
+        if (cfg.hasSel && v.sel > 0) {
+          var h2 = Math.max(2, Math.min(hgt, (v.sel / v.total) * hgt));
+          g.appendChild(s("path", { d: barPath(x, m.t + plotH - h2, barW, h2, Math.min(4, barW / 2, h2)), fill: "var(--accent)" }));
+        }
       }
       bars[dd] = g; svg.appendChild(g);
       var zone = s("rect", { x: m.l + (dd - 1) * slot, y: m.t, width: slot, height: plotH, fill: "transparent", class: "zone" });

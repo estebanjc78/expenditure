@@ -6,7 +6,7 @@ Servidor MCP que guarda tus movimientos bancarios (COP), tomados de las notifica
 
 ## Cómo se ve
 
-Pídele a Claude **"muéstrame mis gastos"** y aparece **dentro de la conversación** un reporte visual e interactivo (Claude y Claude Desktop; es una MCP App, no se abre ningún navegador). Si no encuentras un movimiento ("no encuentro la transferencia del alquiler"), Claude muestra el reporte en el mes correcto con ese movimiento resaltado. Si el cliente no soporta MCP Apps, `abrir_panel` abre el mismo panel en tu navegador: un número protagonista, tu ritmo frente al mes anterior, categorías que se expanden con un clic, un gráfico día a día y una tabla con búsqueda. Corre solo en tu computador, se actualiza solo y sigue tu tema claro u oscuro. (Datos de demostración.)
+Pídele a Claude **"muéstrame mis gastos"** y aparece **dentro de la conversación** un reporte visual e interactivo (Claude y Claude Desktop; es una MCP App, no se abre ningún navegador). Si no encuentras un movimiento ("no encuentro la transferencia del alquiler"), Claude muestra el reporte en el mes correcto con ese movimiento resaltado. Si el cliente no soporta MCP Apps, `abrir_panel` abre el mismo panel en tu navegador: un número protagonista, tu ritmo frente al mes anterior, categorías que se expanden con un clic, y **filtrado cruzado como en Power BI** (haz clic en una categoría, un comercio o un día y todos los gráficos, el ranking y la tabla resaltan esa misma selección), un gráfico día a día y una tabla con búsqueda. Corre solo en tu computador, se actualiza solo y sigue tu tema claro u oscuro. (Datos de demostración.)
 
 ![Panel, tema claro](docs/images/panel-light.png)
 ![Panel, tema oscuro](docs/images/panel-dark.png)

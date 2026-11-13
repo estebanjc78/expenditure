@@ -91,6 +91,15 @@ td.num { white-space: nowrap; }
 tr.hl td { background: color-mix(in srgb, var(--accent) 14%, transparent); animation: flash 1.6s ease-out 2; }
 tr.hl td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 @keyframes flash { 0%, 100% { background: color-mix(in srgb, var(--accent) 14%, transparent); } 40% { background: color-mix(in srgb, var(--accent) 34%, transparent); } }
+.legend .s i { background: var(--accent); height: 3px; }
+.meter.dim, .rank-row.dim { opacity: 0.4; }
+.meter, .rank-row { transition: opacity .2s; }
+.meter-row[aria-pressed="true"], .rank-row[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.chev { cursor: pointer; border-radius: 8px; }
+.chev:hover { color: var(--ink); background: var(--hover); }
+.selbar { position: sticky; top: 8px; z-index: 6; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); font-size: 14px; backdrop-filter: blur(8px); }
+.sel-label { font-weight: 650; }
+.sel-total { margin-left: auto; font-weight: 600; }
 .chart-note { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); max-width: 80ch; }
 .linkish { border: 0; background: transparent; color: var(--ink-2); font-size: 13px; padding: 6px 10px; border-radius: 10px; }
 .linkish:hover { background: var(--hover); color: var(--ink); }

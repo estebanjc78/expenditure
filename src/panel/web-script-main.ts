@@ -22,7 +22,7 @@ function clearFilters() { ui.search.value = ""; setFilter({ category: null, day:
 function setFilter(patch) {
   for (var k in patch) state.filters[k] = patch[k];
   state.limit = 50;
-  renderDays(); renderMerchants(); renderMovements();
+  renderSelBar(); renderHero(); renderCategories(); renderMerchants(); renderDays(); renderMovements();
 }
 function kindLabel(m) { return m.kind === "ingreso" ? "Ingreso" : m.kind === "transferencia_propia" ? "Entre tus cuentas" : catName(m.category); }
 
@@ -139,7 +139,7 @@ function updateLive() {
 }
 function render() {
   if (!ui.built) buildShell();
-  renderTop(); renderBanner(); renderHero(); renderTiles(); renderCategories(); renderMerchants(); renderDays(); renderMovements(); updateLive();
+  renderTop(); renderSelBar(); renderBanner(); renderHero(); renderTiles(); renderCategories(); renderMerchants(); renderDays(); renderMovements(); updateLive();
   if (state.highlight && state.highlight.scroll) { state.highlight.scroll = false; setTimeout(scrollToHighlight, 350); }
   ui.root.classList.toggle("enter", state.animate);
   if (state.animate) { state.animate = false; setTimeout(function () { ui.root.classList.remove("enter"); }, 1400); }
@@ -212,6 +212,7 @@ function debounce(fn, ms) { var t = null; return function () { clearTimeout(t); 
   document.addEventListener("keydown", function (e) {
     var tag = e.target && e.target.tagName;
     if (e.key === "Escape" && ui.menu && !ui.menu.hidden) { closeMenu(); return; }
+    if (e.key === "Escape" && state.data && hasSel()) { setFilter({ category: null, day: null, merchant: null }); return; }
     if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey || !state.data) return;
     if (e.key === "/") { e.preventDefault(); ui.search.focus(); }
     else if (e.target === document.body && e.key === "ArrowLeft") stepMonth(-1);
