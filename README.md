@@ -1,208 +1,169 @@
 # Expenditures Control
 
-An MCP server that keeps your bank-notification movements (COP) in a local SQLite file and lets Claude answer budget questions by category and month.
+**Your bank emails, turned into a live spending report inside Claude.**
+A local-first MCP server that reads the notification emails your bank already sends, keeps the movements on your computer, and shows an interactive, Power BI-style report right in the conversation.
 
 [Leer en español](README.es.md)
 
-## What it looks like
+![Interactive report inside Claude, light theme](docs/images/panel-light.png)
 
-Ask Claude to **"show me my spending"** and a visual, interactive report appears **inside the conversation** (Claude, Claude Desktop; it is an MCP App, so nothing opens in a browser). If you cannot find a movement ("I can't find the rent transfer"), Claude shows the report on the right month with that movement highlighted. Without MCP Apps support, `abrir_panel` opens the same dashboard in your browser: one headline number, your pace against last month, categories that expand with a click, and **cross-filtering like Power BI** (click a category, a merchant or a day and every chart, ranking and the table highlight the same selection), a day-by-day chart, and a searchable table. It runs only on your computer, refreshes by itself, and follows your light or dark theme. (Demo data.)
+## Why it exists
 
-![Dashboard, light theme](docs/images/panel-light.png)
-![Dashboard, dark theme](docs/images/panel-dark.png)
+Every purchase and transfer triggers an email from your bank. That is the one data source that works with any bank, needs no bank API or credentials, and is already in your inbox. This project turns those emails into structured data you own, then lets you explore it by talking to Claude **or** by clicking around a report that lives in the chat.
 
-Or ask in plain text. All figures below are made up.
+- **Any bank, any country.** BBVA Colombia is built in. For any other bank you show Claude 3 or 4 real notices and it learns the reading rules, which the server tests against your examples before saving them.
+- **A report you can play with.** Click a category, a merchant or a day and every chart, ranking and the table highlight the same selection.
+- **Ask in plain language.** "I can't find the rent transfer" opens the report on the right month with that movement highlighted.
+- **Local-first.** Your data lives in one SQLite file on your machine. No cloud, no account.
 
-> **You:** How did October go by category?
->
-> **Claude:** October 2026, spent vs budget:
->
-> | Category | Spent | Budget | Used |
-> |---|---:|---:|---:|
-> | Supermercado | 612,400 | 700,000 | 87% (alert) |
-> | Suscripcion | 148,900 | 200,000 | 74% |
-> | Fijo | 1,350,000 | 1,350,000 | 100% |
-> | Otro | 203,500 | no budget | |
->
-> 41,000 COP of spending is still uncategorized (2 merchants). Want to classify them?
->
-> <details>
-> <summary>Detail: Supermercado</summary>
->
-> | Date | Merchant | Amount |
-> |---|---|---:|
-> | 2026-10-03 | Supermercado Ejemplo | 134,588 |
-> | 2026-10-11 | Tienda Ejemplo | 88,200 |
-> | 2026-10-19 | Supermercado Ejemplo | 201,350 |
-> | 2026-10-27 | Mercado Demo | 188,262 |
->
-> </details>
+![Cross-filtering: selecting a category highlights its share of every day and filters the table](docs/images/panel-filter.png)
 
-The server can read your bank notification emails itself (read-only Gmail access, one-time setup), extract the data with per-bank rules and keep only a short summary in Claude's context. That makes it practical to load months of history in one go. Without that setup, Claude can still read recent emails with its own Gmail connector and hand the server the extracted data.
+## See it in a conversation
+
+| You say | What happens |
+|---|---|
+| "Show me my spending" | The interactive report appears inside the conversation, with your pace against last month, categories, a day-by-day chart and a searchable table. |
+| "I can't find the rent transfer" | Claude understands "rent" from your fixed-expenses list, opens the right month and highlights the movement. |
+| "Which subscriptions am I paying that I don't track?" | Compares what was actually charged with your list and surfaces the forgotten ones. |
+| "Learn my Galicia notices" | Claude asks for 3 or 4 real emails, confirms with you how each reads, writes the rules, and saves them only if every example passes. |
+| "Sync my bank emails from September" | With Gmail connected, the server downloads and parses the mails itself and returns only a short summary. |
+
+## Highlights
+
+- **Interactive report as an MCP App**, rendered inside Claude (and Claude Desktop). The model only receives a short summary: the report fetches its own data through a private tool, so your movements never enter the model's context.
+- **Learned bank formats.** Declarative, schema-validated rules per sender, tested against confirmed examples, stored in your database. Learned rules take priority over built-in ones, so a bank can be re-taught when its emails change.
+- **Gmail sync from the server.** Read-only OAuth (PKCE, loopback), token kept locally. Months of history load in seconds without passing through the model.
+- **Fixed expenses and forgotten subscriptions.** Import a spreadsheet of what you expect to pay; the server tells you what was paid, what is still due and what you pay without tracking. PSE payments, which hide the payee, are matched by amount.
+- **Sensible accounting.** USD-to-COP conversions count as income, credit-card payments are own transfers (no double counting), PSE and transfers to people get their own categories.
+- **Safe by construction.** Strict CSP, secret token and `127.0.0.1` only for the browser fallback; regexes proposed by a model run in an isolated context with a time limit; text taken from emails is cleaned and length-limited.
+
+![Dark theme](docs/images/panel-dark.png)
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    U[You] <--> C[Claude client]
-    C <-->|"stdio (MCP tools)"| S[expenditures-control server]
+    U[You] <--> C[Claude]
+    C <-->|"MCP tools"| S[expenditures-control]
     S <--> DB[(Local SQLite file)]
-    S <-->|"read-only, OAuth"| GA[Gmail API]
-    GA --- M[Bank notification emails]
-    S --> P[Per-bank parsers: regex, no model]
+    S <-->|"read-only, OAuth"| G[Gmail API]
+    G --- M[Bank notification emails]
+    S --> P["Reading rules per bank: built-in or learned"]
+    S -->|"private data tool"| R["Interactive report (MCP App)"]
+    R --> U
     C -. "optional: Claude's own Gmail connector" .-> M
 ```
 
-The server has no language model. With Gmail connected, the server downloads the mails of your authorized senders, extracts the movements with per-bank parsers (regular expressions over the "operation details" block) and returns only a summary; Claude classifies merchants and answers questions. See [docs/diagrama-proceso-mcp.md](docs/diagrama-proceso-mcp.md) for the full flow (in Spanish).
+The server has no language model. Claude does what needs judgment (classifying merchants, explaining, learning a new bank from examples); the server validates, stores, aggregates and extracts. The full flow is in [docs/diagrama-proceso-mcp.md](docs/diagrama-proceso-mcp.md) (in Spanish).
 
-## Privacy
+## Get started
 
-- Gmail access is optional and read-only (`gmail.readonly`). When connected, the server fetches only mails from the senders you authorized, and only to extract the movement data.
-- The OAuth token lives in `~/.gastos-mcp/gmail-token.json` on your computer (owner-only permissions). You can delete it any time with `desconectar_gmail` and revoke the permission at <https://myaccount.google.com/permissions>.
-- The server stores only extracted data: date, amount, merchant, bank, kind (expense, income, own transfer) and category. It never stores the text of an email.
-- Everything lives in files on your computer. The only network traffic of this server is to Google's APIs (Gmail and sign-in) when you connect Gmail.
-- Merchant names, amounts and subjects that the server returns are visible to Claude like any tool result.
-- The dashboard is served only on `127.0.0.1` (never on the network), needs a secret token that travels in the URL fragment, refuses any other `Host`, is read-only and loads nothing from the internet.
-- Note: when Claude reads your emails or queries the data, that content is processed by your Claude client under its own privacy terms.
+**Requirements:** Node.js 22.13 or newer (the server uses the built-in `node:sqlite`) and Claude Desktop (or any MCP client that runs stdio servers; MCP Apps need a host that supports them, such as Claude Desktop).
 
-## Requirements
-
-- Node.js 22.13 or newer (the server uses the built-in `node:sqlite`). Check with `node --version`.
-- An MCP client: Claude Code, Claude Desktop, or any client that runs stdio servers.
-- For email sync: connect Gmail to the server (three clicks, see [docs/gmail-setup.md](docs/gmail-setup.md)) or use Claude's own Gmail connector.
-
-## Install
-
-### A. Claude Code
+### Claude Desktop (one-click bundle)
 
 ```bash
-claude mcp add gastos -- npx -y expenditures-control
+git clone https://github.com/estebanjc78/expenditures-control.git
+cd expenditures-control
+npm install
+npm run build:mcpb        # produces build/expenditures-control.mcpb
 ```
 
-To choose where the database goes:
+Open `build/expenditures-control.mcpb` with Claude Desktop and click **Install**. Allow the report when Claude asks.
+
+### Claude Code or other clients
 
 ```bash
-claude mcp add gastos -e GASTOS_DB=/path/to/gastos.db -- npx -y expenditures-control
+npm install && npm run build
+claude mcp add gastos -- node "/absolute/path/to/dist/index.js"
 ```
 
-> The npm package is not published yet (see Status below). Until then, run it from a clone: `npm install && npm run build`, then `claude mcp add gastos -- node "/absolute/path/to/dist/index.js"`.
+Set `GASTOS_DB=/path/to/gastos.db` in the server's environment to choose where the database goes (default `~/.gastos-mcp/gastos.db`). Without MCP Apps support, `abrir_panel` opens the same dashboard in your browser.
 
-### B. Claude Desktop (.mcpb, double-click)
+### First steps
 
-Build the bundle from the repo (`npm run build:mcpb` produces `build/expenditures-control.mcpb`) and open it with Claude Desktop, then click **Install**. Claude Desktop's built-in Node includes `node:sqlite`, and the bundle has been used there to store movements. Downloadable releases are not published yet. If you prefer not to build it, use C below.
+1. **Add your bank sender:** "Add `BBVA@bbvanet.com.co` as a bank sender." Any other bank: see [Banks](#banks).
+2. **Load movements.** Either ask Claude to read recent mails with its own Gmail connector, or connect Gmail to the server once ("Connect my Gmail") and ask "Sync my bank emails from 2026-09-01". See [docs/gmail-setup.md](docs/gmail-setup.md).
+3. **Look at it:** "Show me my spending."
+4. **Optional:** import a spreadsheet of fixed expenses and set a budget ("Set a 4,000,000 supermercado budget for every month").
 
-### C. Manual JSON config (Claude Desktop and other clients)
+Fixed-expenses spreadsheet: first sheet with headers `nombre`, `monto`, `comercio` (the keyword used to detect the payment: whole words, accents and case ignored; a trailing `*` also matches a truncated last word, like `compania de med*`). Importing replaces the previous list.
 
-Add this to the client's MCP config (for Claude Desktop: Settings, Developer, Edit Config):
+## Banks
 
-```json
-{
-  "mcpServers": {
-    "gastos": {
-      "command": "npx",
-      "args": ["-y", "expenditures-control"],
-      "env": { "GASTOS_DB": "/path/to/gastos.db" }
-    }
-  }
-}
-```
+BBVA Colombia is built in: purchases, received money (Bre-B and transfers), own transfers, transfers to people, PSE payments, bill payments and credit-card payments.
 
-`env` is optional. The Node used by the client must be 22.13 or newer; if your client uses a different Node, set `command` to the full path of a recent `node` and `args` to the path of `dist/index.js`.
-
-## Where the data lives
-
-The database is one file. Default: `~/.gastos-mcp/gastos.db` (the folder is created with private permissions). Set `GASTOS_DB` to use another path; `~` is expanded, an empty value counts as unset, and `:memory:` gives a throwaway database.
-
-- **Back up:** close the client and copy the file (`cp ~/.gastos-mcp/gastos.db ~/gastos-backup.db`). Also copy `gastos.db-wal` and `gastos.db-shm` if they exist next to it.
-- **Delete everything:** remove the file (`rm ~/.gastos-mcp/gastos.db*`). The next start creates an empty database.
-
-## First use
-
-1. **Add your bank senders.** Ask Claude: "Add `BBVA@bbvanet.com.co` as a bank sender." There are none by default; the server only treats mail from these addresses as bank notifications.
-2. **Connect Gmail (once).** Ask: "Connect my Gmail", then in the browser choose your account and click **Allow** (Google shows an "unverified app" notice first; see [docs/gmail-setup.md](docs/gmail-setup.md)).
-3. **Sync.** Ask: "Sync my bank emails from 2026-09-01." The server downloads and parses the mails itself and returns a summary (registered, skipped, needs review, merchants without category). It is safe to repeat. Without the Gmail connection, Claude can read recent mails with its own connector instead; see [docs/sync-guide.md](docs/sync-guide.md).
-4. **Classify merchants.** Claude classifies new merchants itself from their names (`supermercado`, `suscripcion`, `fijo`, `otro`, `pse` or `transferencia`), shows you the list, and you correct what is wrong. Each merchant is classified once and remembered, including for past movements.
-5. **Set budgets.** "Set a 700,000 supermercado budget for every month."
-6. **Ask.** "How did October go by category?", "What did I spend at Supermercado Ejemplo this year?", "Which fixed expenses are still unpaid?"
-
-### Fixed-expenses Excel
-
-Optional. Create an `.xlsx` with the first sheet like this (headers on row 1, case-insensitive):
-
-| nombre | monto | comercio |
-|---|---:|---|
-| Rent | 1200000 | landlord name |
-| Internet | 150000 | ISP |
-
-`comercio` is the keyword used to detect the payment among your movements (whole words, accents and case ignored; if empty, `nombre` is used). Banks cut long merchant names, so a keyword ending in `*` also matches a truncated last word (`compania de med*`). Then ask Claude to import it from the file path. Importing replaces the previous list.
+For any other bank, **teach it from examples**: add the sender, ask Claude to learn that bank, confirm how it reads 3 or 4 of your real notices, and the rules are stored in your database. Details, the rules format and the safety model: [docs/learn-a-bank.md](docs/learn-a-bank.md). It is tested with made-up Argentine and Mexican examples, not yet with real mails of those banks.
 
 ## Tools (25)
 
-The tool names are in Spanish.
+Tool names are in Spanish.
+
+<details>
+<summary>Show all tools</summary>
 
 | Tool | What it does |
 |---|---|
-| `registrar_movimiento` | Save one interpreted movement (`sourceId` = email id prevents duplicates). |
-| `registrar_movimientos` | Save up to 100 movements per batch; each item is validated separately. |
-| `consultar_movimientos` | Filter and group movements (totals by category, bank, merchant, day or month). |
-| `clasificar_comercio` | Assign a category to a merchant and reclassify all its expenses. |
-| `fijar_presupuesto` | Set the budget of a category for a month (or `default`). |
-| `estado_presupuesto` | Spent vs budget per category, alert at 80%, plus uncategorized spend. |
-| `importar_gastos_fijos` | Load the fixed-expenses list from an Excel file. |
-| `gastos_fijos_pendientes` | Fixed expenses of a month: paid and still due. |
-| `ultimo_movimiento_registrado` | Latest movement date per bank, to know where to sync from. |
-| `listar_remitentes` | Authorized bank senders and the Gmail query (`from:(a OR b)`). |
-| `agregar_remitente` | Add a bank sender (stored lowercase, must contain `@`). |
-| `quitar_remitente` | Remove a bank sender. |
-| `filtrar_no_registrados` | From a list of message ids (max 500), return those not registered yet. |
-| `conectar_gmail` | Connect Gmail (read-only) with a one-time Allow click. |
-| `estado_gmail` | Whether Gmail is configured, connected or waiting for you. |
-| `desconectar_gmail` | Delete the Gmail token stored on this computer. |
-| `sincronizar_gmail` | Download and parse bank mails for a date range and register the movements; returns a summary. |
-| `clasificar_comercios` | Classify many merchants at once and reclassify their expenses. |
-| `gastos_recurrentes_no_listados` | Subscriptions and fixed charges of a month that are not in your fixed-expenses list: find the ones you forgot. |
-| `formatos_banco` | Which banks the server can read (built-in and learned) and which authorized senders still need rules. |
-| `configurar_formato_banco` | Teach the server a new bank from 3-4 confirmed example notices; saved only if all pass. |
-| `eliminar_formato_banco` | Delete learned rules for a sender. |
 | `ver_panel` | Show the interactive report inside the conversation; `resaltar` highlights the movements you are looking for (a fixed-expense concept, a name, an amount or a category). |
-| `datos_panel` | Private tool the report uses to fetch its own data; the model never sees it, so movements do not enter its context. |
-| `abrir_panel` | Open the interactive spending dashboard in your browser (local, read-only). |
+| `datos_panel` | Private tool the report uses to fetch its own data; the model never sees it. |
+| `abrir_panel` | Open the same dashboard in a browser window (local, read-only). |
+| `registrar_movimiento` / `registrar_movimientos` | Save one movement, or up to 100 per batch; `sourceId` (the email id) prevents duplicates. |
+| `consultar_movimientos` | Filter and group movements (by category, bank, merchant, day or month). |
+| `clasificar_comercio` / `clasificar_comercios` | Assign a category to one merchant, or to many at once, and reclassify their expenses. |
+| `fijar_presupuesto` / `estado_presupuesto` | Set a budget; spent vs budget per category with an alert at 80%. |
+| `importar_gastos_fijos` / `gastos_fijos_pendientes` | Load the fixed-expenses list; what was paid and what is still due. |
+| `gastos_recurrentes_no_listados` | Subscriptions and fixed charges you pay that are not in your list. |
+| `ultimo_movimiento_registrado` | Latest movement date per bank. |
+| `listar_remitentes` / `agregar_remitente` / `quitar_remitente` | Manage the authorized bank senders. |
+| `filtrar_no_registrados` | From a list of email ids, the ones not registered yet. |
+| `conectar_gmail` / `estado_gmail` / `desconectar_gmail` | Connect Gmail (read-only), check it, or delete the local token. |
+| `sincronizar_gmail` | Download and parse bank mails for a date range; returns a summary. |
+| `formatos_banco` | Which banks can be read (built-in and learned) and which senders still need rules. |
+| `configurar_formato_banco` / `eliminar_formato_banco` | Learn a bank from confirmed examples (saved only if all pass), or delete its rules. |
 
-## Troubleshooting
+</details>
 
-- **"node:sqlite" not found / server exits at start:** your Node is older than 22.13. Run `node --version` and upgrade. With a GUI client, the Node it launches may differ from your shell's; use the full-path option in install C.
-- **The tools do not appear:** restart the client after adding the server. In Claude Code run `claude mcp list` and check that `gastos` is connected.
-- **`npx` is slow the first time:** it downloads the package once, then caches it.
-- **Data is not where I expect:** check `GASTOS_DB` in the server's env; without it the file is `~/.gastos-mcp/gastos.db`.
-- **A movement was read wrong:** there is no edit or delete tool yet (see Limitations).
+## Privacy and security
 
-## Limitations
+- **Local-first.** One SQLite file on your computer. The only network traffic is to Google's APIs when you connect Gmail.
+- **Read-only Gmail** (`gmail.readonly`), only for the senders you authorize, only to extract movement data. The token lives in `~/.gastos-mcp/gmail-token.json` (owner-only permissions); `desconectar_gmail` deletes it and you can revoke the permission at <https://myaccount.google.com/permissions>.
+- **Only extracted data is stored**: date, amount, merchant, bank, kind and category, never the text of an email.
+- **The report does not feed the model.** Its data comes through a tool the model cannot call, so movements stay out of the conversation context; the model receives a short summary.
+- **Browser fallback hardening:** `127.0.0.1` only, secret token in the URL fragment, other `Host` headers refused, nonce-based CSP, read-only, nothing loaded from the internet.
+- **Untrusted input is treated as such:** mail text is size-capped, parsers avoid backtracking-prone regexes, learned regexes run in an isolated context with a 150 ms limit, and values taken from emails are cleaned before reaching the model.
+- When Claude reads your emails or queries your data, that content is processed under your Claude client's own privacy terms.
 
-- No tool to edit or delete a movement yet.
-- Gmail sync uses a Google app shipped with the package (the maintainer sets it up once, see [docs/gmail-setup.md](docs/gmail-setup.md)). Until Google verifies it, Google shows an "unverified app" screen and allows 100 users in total. It has been tested against simulated Google responses and real BBVA email formats, not yet end to end against Google's servers.
-- BBVA Colombia is built in. **Any other bank is learned from 3 or 4 of your own notices** (see [docs/learn-a-bank.md](docs/learn-a-bank.md)): Claude writes the reading rules, the server tests them against the examples you confirmed and stores them in your database. Tested with made-up Argentine and Mexican examples, not yet with real mails of those banks. One currency per database.
-- Bank taxes and fees that no email carries (4x1000, VAT, commissions, card maintenance fees) are not reflected; the dashboard says so under its chart, so totals can differ from the bank statement.
-- Foreign-currency transfers other than USD-to-COP conversions are not registered automatically; they are reported for your review.
-- The server trusts the `From` address Gmail reports and relies on Gmail's own spoofing protection; it does not verify DKIM itself yet. Text taken from emails (merchant, subject) is cleaned and length-limited before it reaches the model, but treat it as data.
-- Amounts are integer COP only.
+## Engineering notes
 
-Roadmap ideas for a second phase: edit and delete movements, receipt rules for more banks, more currencies.
+- **MCP end to end.** 25 tools over stdio, plus an MCP App (`ui://` resource) with a private app-only data tool.
+- **Rules as data, not code.** A schema-validated profile per sender (labels, regexes, fixed values, date formats, currency, time zone), tested against examples before being saved.
+- **Idempotent, resumable sync.** Mails already processed or discarded are never downloaded again; large ranges resume where they stopped.
+- **Tested.** 289 unit and integration tests (parsers with hostile inputs, OAuth with a simulated Google, the MCP protocol in memory, CSP guards), type-checked TypeScript, and a packaging smoke test that installs the tarball and talks to it over stdio.
+- **Reviewed.** The Gmail and parsing code went through a security review whose findings (ReDoS, poison mails, token handling, sender validation) were fixed and covered by tests.
 
-## Status and development
+## Limitations and roadmap
 
-Pre-release (0.1.0). Not published to npm yet.
+- Gmail sync from the server needs a Google OAuth client; until Google verifies the app it shows an "unverified app" screen and allows 100 users in total. It is covered by tests with a simulated Google, not yet run end to end against Google's servers by the maintainer.
+- Bank taxes and fees that no email carries (4x1000, VAT, commissions, card maintenance fees) are not reflected; the report says so under its chart.
+- No tool to edit or delete a movement yet; purchase reversals are not modeled yet.
+- One currency per database. Foreign-currency transfers other than USD-to-COP conversions are reported for review instead of being registered.
+- The report can be driven by Claude only when it is opened; moving an already-open report from the conversation needs a remote connector (planned).
+- The server trusts the `From` address Gmail reports and does not verify DKIM itself yet.
+- Roadmap: a remote connector (add by URL, works on web and mobile), editing and deleting movements, reversals, more banks and currencies.
+
+## Development
 
 ```bash
 npm install
-npm test            # unit tests
+npm test             # 289 tests
 npm run typecheck
 npm run build
-npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 25 tools over stdio
-npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
-npm run build && npm run panel:demo  # look at the dashboard with made-up data
+npm run smoke:pack   # packs, installs the tarball in a temp dir, checks the 25 tools over stdio
+npm run build:mcpb   # builds build/expenditures-control.mcpb
+npm run panel:demo   # opens the report with made-up data (build first)
 ```
 
-Repository: https://github.com/estebanjc78/expenditures-control
+Troubleshooting: if `node:sqlite` is not found, your Node is older than 22.13 (a GUI client may launch a different Node than your shell); if the tools do not appear, restart the client; data lives at `GASTOS_DB` or `~/.gastos-mcp/gastos.db` (back it up by copying the file and its `-wal`/`-shm` neighbors when the client is closed).
 
 ## License
 

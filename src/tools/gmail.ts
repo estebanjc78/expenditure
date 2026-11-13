@@ -36,7 +36,7 @@ export function registerGmailTools(server: McpServer, db: DatabaseSync, gmail: G
     },
     () => run(async () => {
       const { url, opened } = await gmail.connect();
-      return { url, opened, next: "Pídele al usuario que toque Permitir en la ventana de Google y luego confirma con estado_gmail." };
+      return { url, opened, next: "Pídele al usuario que toque Permitir en la ventana de Google y luego confirma con estado_gmail. Si Google muestra «Error 403: access_denied», la app está en modo Prueba: en Google Cloud > Público hay que tocar «Publicar app» o agregar su correo como usuario de prueba, y luego repetir conectar_gmail." };
     }),
   );
 

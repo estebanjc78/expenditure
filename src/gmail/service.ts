@@ -10,6 +10,16 @@ const SETUP_HINT =
   "Esta instalación no trae la app de Google incluida. Opciones: usa el conector de Gmail de Claude para los correos recientes (docs/sync-guide.md), " +
   "o configura tu propia app de Google (docs/gmail-setup.md, sección 'Use your own Google app').";
 
+const ACCESS_DENIED_HELP =
+  "Google rechazó el acceso (error 403 access_denied). Casi siempre es que la app está en modo Prueba y tu correo no figura como usuario de prueba: " +
+  "en Google Cloud abre «Público» (https://console.cloud.google.com/auth/audience) y toca «Publicar app», o agrega tu correo en «Usuarios de prueba». " +
+  "Después vuelve a pedir conectar_gmail.";
+
+/** Turns the raw OAuth failure into something the user can act on. */
+export function friendlyAuthError(message: string): string {
+  return /access_denied/i.test(message) ? ACCESS_DENIED_HELP : message;
+}
+
 export interface GmailStatus {
   readonly configured: boolean;
   readonly connected: boolean;
@@ -62,7 +72,7 @@ export function createGmailService(options: GmailServiceOptions): GmailService {
       const started = beginAuthorization(cfg, store, { fetchFn: options.fetchFn, timeoutMs: options.oauthTimeoutMs }).then(({ url, completion }) => {
         completion
           .catch((err: unknown) => {
-            lastError = err instanceof Error ? err.message : String(err);
+            lastError = friendlyAuthError(err instanceof Error ? err.message : String(err));
           })
           .finally(() => {
             pending = null;

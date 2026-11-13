@@ -55,3 +55,12 @@ describe("bundled client injection", () => {
     expect(BUNDLED_CLIENT).toBeNull();
   });
 });
+
+describe("friendlyAuthError", () => {
+  it("turns Google's access_denied into steps the user can follow, and leaves other errors alone", async () => {
+    const { friendlyAuthError } = await import("../src/gmail/service.js");
+    expect(friendlyAuthError("access_denied")).toMatch(/Publicar app/);
+    expect(friendlyAuthError("access_denied")).toMatch(/usuarios de prueba/i);
+    expect(friendlyAuthError("Se agotó el tiempo esperando la autorización de Google")).toBe("Se agotó el tiempo esperando la autorización de Google");
+  });
+});
