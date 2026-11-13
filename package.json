@@ -18,7 +18,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "smoke:pack": "node scripts/smoke-pack.mjs",
-    "build:mcpb": "node scripts/build-mcpb.mjs"
+    "build:mcpb": "node scripts/build-mcpb.mjs",
+    "embed:app-client": "node scripts/embed-app-client.mjs",
+    "panel:demo": "node scripts/panel-demo.mjs --open"
   },
   "engines": {
     "node": ">=22.13"

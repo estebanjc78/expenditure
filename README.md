@@ -199,7 +199,7 @@ npm run typecheck
 npm run build
 npm run smoke:pack  # npm pack, install the tarball in a temp dir, check 25 tools over stdio
 npm run build:mcpb  # optional: builds build/expenditures-control.mcpb
-npm run build && node scripts/panel-demo.mjs --open  # look at the dashboard with made-up data
+npm run build && npm run panel:demo  # look at the dashboard with made-up data
 ```
 
 Repository: https://github.com/estebanjc78/expenditures-control

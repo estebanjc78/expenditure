@@ -6,8 +6,8 @@ import { CATEGORIES } from "./types.js";
 import type { Category } from "./types.js";
 
 export { CATEGORIES };
-export const DEFAULT_MONTH = "default";
-export const ALERT_THRESHOLD_PERCENT = 80;
+const DEFAULT_MONTH = "default";
+const ALERT_THRESHOLD_PERCENT = 80;
 
 export interface CategoryStatus {
   category: Category;

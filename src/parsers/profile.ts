@@ -17,7 +17,7 @@ const extractor = z.union([
 
 const textList = z.array(z.string().trim().min(1).max(80)).max(8);
 
-export const templateSchema = z
+const templateSchema = z
   .object({
     name: z.string().trim().min(1).max(40),
     /** The template applies when the subject contains ANY of `subjectContains` (if given) and the text contains ALL of `bodyContains` (if given). */

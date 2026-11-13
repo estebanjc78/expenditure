@@ -4,7 +4,7 @@ import { normalizeMerchant } from "./classify.js";
 import { assertMonth } from "./month.js";
 
 /** Header names expected in row 1 of the first worksheet (case-insensitive). */
-export const FIXED_COLUMNS = { name: "nombre", amount: "monto", merchant: "comercio" } as const;
+const FIXED_COLUMNS = { name: "nombre", amount: "monto", merchant: "comercio" } as const;
 
 export interface FixedStatus {
   name: string;

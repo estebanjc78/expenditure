@@ -1,5 +1,5 @@
 /** Label -> value slicing shared by the built-in parsers and the learned-rules engine. */
-export function escapeRegExp(s: string): string {
+function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 

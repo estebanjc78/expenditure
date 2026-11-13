@@ -12,7 +12,7 @@ export interface GroupNode {
 }
 
 export const UNCLASSIFIED = "sin_categoria";
-export const ALL_KEY = "total";
+const ALL_KEY = "total";
 
 function keyOf(m: Movement, dim: Dimension): string {
   switch (dim) {
